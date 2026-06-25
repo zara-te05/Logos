@@ -1,0 +1,264 @@
+# Estado del Lenguaje "Re" - Que falta implementar
+
+## YA ESTA HECHO (en la gramatica)
+- Tokens del Lexer: tipos, operadores, control de flujo, literales
+- Gramatica del Parser: program, function_decl, if, while, do-while, for..in, var_decl, var_assign, print, expresiones con precedencia
+- Environment (tabla de simbolos con scopes anidados)
+- Soporte de comentarios de linea (//) y de bloque (/* */)
+
+---
+
+## YA IMPLEMENTADO EN EL INTERPRETE (Sesion 1 - 2026-06-12)
+
+### Expresiones (visitExpression) - COMPLETO
+- [x] Literales: int, double, string, bool
+- [x] Operadores aritmeticos: +, -, *, /, ^
+- [x] Operadores de comparacion: ==, !=, >, <, >=, <=
+- [x] Operadores logicos: and/&&, or/||, not/!
+- [x] Expresiones con parentesis
+- [x] Negacion unaria (-x)
+- [x] Leer el valor de una variable (ID)
+- [x] Acceso a arreglos con indice (arr[i])
+- [x] Concatenacion de strings con +
+
+### Variables - COMPLETO
+- [x] visitVar_decl - Declarar variables con tipo fuerte (int, double, string, bool, var)
+- [x] visitVar_assign - Reasignar el valor de una variable existente
+- [x] enforceType - Verificacion de tipo en tiempo de ejecucion
+
+### Control de flujo - COMPLETO
+- [x] visitIf_statement - if / else if / else
+- [x] visitWhile_statement - while
+- [x] visitDo_while_statement - do-while
+- [x] visitFor_statement - for x in rango (..) / lista literal ([]) / variable
+
+### Funciones - COMPLETO
+- [x] visitFunction_decl - Registrar funciones en memoria con closure
+- [x] visitFunction_call - Llamar funciones, pasar argumentos, crear scope nuevo
+- [x] visitReturn_statement - Devolver valores de funciones (via ReturnSignal)
+- [x] Pre-registro de funciones (se pueden usar antes de ser declaradas)
+
+### Print - COMPLETO
+- [x] Evalua cualquier expresion (string, bool, int, double, operaciones)
+- [x] Imprime linea vacia con print() sin argumentos
+
+---
+
+## YA IMPLEMENTADO EN EL INTERPRETE (Sesion 2 - 2026-06-12)
+
+### Operadores de Asignacion Compuesta - COMPLETO
+- [x] +=, -=, *=, /= - Implementados en gramatica Y en el interprete
+- [x] += con strings funciona como concatenacion (s += " mundo")
+- [x] Verificacion de tipo para -=, *=, /= (requieren numerico)
+
+### Colecciones - IMPLEMENTADO
+- [x] list<T> - listas dinamicas: declaracion, inicializacion con literales
+- [x] list<T>.add(val) - agregar elementos
+- [x] list<T>.remove(index) - eliminar por indice
+- [x] list<T>.size() - obtener tamano
+- [x] list<T>.get(index) - acceso por indice
+- [x] array<T> - arreglos: declaracion, inicializacion con literales
+- [x] array<T>.size() - obtener tamano
+- [x] array<T>.get(index) - acceso por indice
+- [x] arr[i] - acceso por indice con brackets (para list y array)
+- [x] for x in lista/array - iterar sobre colecciones
+- [x] print(lista/array) - muestra "[elem1, elem2, ...]"
+- [x] queue<T> / stack<T> - implementados sobre ReList (basico)
+
+### Metodos de String - IMPLEMENTADO
+- [x] str.upper() / str.toUpperCase() - convertir a mayusculas
+- [x] str.lower() / str.toLowerCase() - convertir a minusculas
+- [x] str.size() / str.length() - obtener longitud
+- [x] str.contains(sub) - verificar si contiene subcadena
+- [x] str.substring(start, end?) - extraer subcadena
+
+### Funciones Incorporadas (Built-in) - IMPLEMENTADO
+- [x] to_int(val) - convertir a entero
+- [x] to_str(val) - convertir a string
+- [x] to_double(val) - convertir a double
+- [x] len(val) / size(val) - longitud de string, lista, array
+
+### Mensajes de Error Mejorados - IMPLEMENTADO
+- [x] Errores con numero de linea y columna en expresiones
+- [x] Errores con linea en llamadas a funciones (argumento incorrecto, no definida)
+- [x] Errores con linea en operadores compuestos
+
+### TypeChecker.ts (Analisis Estatico) - IMPLEMENTADO
+- [x] Verificacion de tipos en tiempo de compilacion (ANTES de ejecutar)
+- [x] Detectar que no asignes un string a un int
+- [x] Verificar que variables sean declaradas antes de usarse
+- [x] Verificar que el numero de argumentos al llamar una funcion sea correcto
+- [x] Verificar tipos de argumentos al llamar funciones
+- [x] Verificar que funciones void no retornen valor
+- [x] Verificar que el tipo de retorno sea correcto
+- [x] Inferencia de tipo de expresiones (+, -, *, /, comparaciones, etc.)
+- [x] Verificar metodos de string, list<T>, array<T>
+- [x] Verificar operadores compuestos (+=, -=, *=, /=) con tipos correctos
+
+#### Input - IMPLEMENTADO (Completo y Multiplataforma)
+- [x] input_statement: var x = input("Prompt"); - lee de stdin sincrono usando fs.readSync directamente.
+- [x] Funciona de forma multiplataforma en Linux, Windows y macOS.
+- [x] Corregido comportamiento de prompt flusheando de manera síncrona.
+
+---
+
+## YA IMPLEMENTADO EN EL INTERPRETE Y TYPECHECKER (Sesion 3 - 2026-06-12)
+
+### Colecciones Especializadas
+- [x] queue<T> y stack<T> como clases nativas independientes (ReQueue y ReStack)
+- [x] Métodos de queue: .enqueue(val), .dequeue(), .size()
+- [x] Métodos de stack: .push(val), .pop(), .size()
+- [x] Arrays de tamaño fijo reales (no exponen .add ni .remove, no reasignables por índice)
+
+### Mejoras del TypeChecker
+- [x] Inferencia del tipo de la variable iteradora del for-in según la colección o rango
+- [x] Verificación de tipos en argumentos de métodos de listas, arrays, colas, pilas y strings
+- [x] Verificación de tipos de operandos en operaciones aritméticas (-, *, /, ^, unario -) y lógicas (and, or)
+- [x] Validación de tipos mixtos incompatibles dentro de listas literales [1, 2, "tres"]
+
+---
+
+## PENDIENTE PARA PROXIMAS SESIONES
+
+### 1. Modularizacion (avanzado)
+- [ ] import "archivo.re" para importar otros archivos del lenguaje
+- [ ] Separar el interprete en multiples archivos por responsabilidad
+
+### 2. Ergonomia Adicional
+- [ ] Soporte para strings multilinea (template literals)
+- [ ] Incremento/decremento: x++ / x-- como azucar sintatico sobre x += 1
+
+### 3. Distribucion y Tooling (Sesion 4 - Parcialmente completado)
+- [x] CLI ejecutable `re` (src/compiler.cli/re.ts) - COMPLETO
+- [x] Servidor LSP `re-lsp` (src/compiler.cli/re-lsp.ts) - COMPLETO
+- [x] Script instalador Linux/macOS (install.sh) - COMPLETO
+- [x] Script instalador Windows (install.ps1) - COMPLETO
+- [x] Script post-build para shebangs (scripts/add-shebangs.js) - COMPLETO
+- [x] package.json actualizado con campos "bin", scripts "build" y dependencias LSP - COMPLETO
+- [ ] Extensión minima de VS Code (cliente LSP ligero que arranque re-lsp)
+      -> Crear carpeta vscode-extension/ con package.json de extension,
+         activar en archivos .re, lanzar re-lsp como child process del cliente
+- [ ] Coloreado de sintaxis TextMate (.tmLanguage.json) para archivos .re
+      -> Palabras clave: program, int, double, string, bool, var, list, array, queue, stack,
+         if, else, while, do, for, in, return, print, input, true, false
+- [ ] Instrucciones de configuracion por editor en README:
+      -> Neovim: nvim-lspconfig custom server entry para re-lsp
+      -> Sublime Text: LSP plugin + re-lsp.sublime-settings
+      -> Helix: languages.toml entry para .re con re-lsp
+      -> Zed: extensions/re/extension.toml
+- [ ] Publicar en npm como paquete global (npm publish) con nombre "re-lang"
+      -> Requiere cuenta en npmjs.com y configurar .npmignore
+- [ ] Empaquetar como binario standalone con `pkg` (no requiere Node.js instalado)
+      -> npx pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64
+
+---
+
+## PUNTO DE PARADA
+
+> SESION 1 COMPLETADA (2026-06-12)
+>
+> Se implemento completamente el archivo Interpreter.ts con soporte para:
+>   - Tipos: int, double, string, bool, var
+>   - Operadores: aritmeticos, comparacion, logicos, concatenacion de strings
+>   - Variables: declaracion con tipo fuerte, reasignacion
+>   - Estructuras de control: if/else if/else, while, do-while, for..in con rangos y listas
+>   - Funciones: declaracion, llamada con argumentos, return, scopes anidados
+>   - Comentarios: // y /* */
+>
+> Todos los features se probaron con exito en index.ts. Resultado del test:
+>   20, 9.99, Ana, true, 25, 256, "Hola, Ana", "Es menor de edad",
+>   0,1,2 (while), 1,2,3,4,5 (for), 49 (cuadrado(7)), "Hola, Mundo"
+
+---
+
+> SESION 2 COMPLETADA (2026-06-12)
+>
+> Implementados en Interpreter.ts y TypeChecker.ts:
+>   - Operadores compuestos: +=, -=, *=, /= en gramatica y en interprete
+>   - Gramatica: nuevos tokens DOT, INPUT, PLUS_ASSIGN, MINUS_ASSIGN, MULT_ASSIGN, DIV_ASSIGN
+>   - Gramatica: nuevas reglas method_call, input_statement, lista literal [...]
+>   - Colecciones: list<T> (dinamica), array<T> (fija), queue<T>/stack<T> (sobre ReList)
+>   - Metodos de lista: .add(), .remove(), .size(), .get()
+>   - Metodos de array: .size(), .get()
+>   - Metodos de string: .upper(), .lower(), .size(), .contains(), .substring()
+>   - Built-ins: to_int(), to_str(), to_double(), len(), size()
+>   - input_statement: x = input("prompt"); - lectura de stdin sincrona
+>   - Mensajes de error con numero de linea y columna
+>   - TypeChecker.ts: analisis estatico completo (tipos, funciones, variables, retornos)
+>
+> Resultado del test completo (npm run start): EXITOSO - todas las pruebas pasan
+>
+> PROXIMA SESION - Empezar por:
+>   1. queue<T> y stack<T> con metodos propios
+>   2. Mejoras al TypeChecker (inferencia del tipo del for-in, int + string -> error)
+>   3. input() multiplataforma
+
+---
+
+> SESION 3 COMPLETADA (2026-06-12)
+>
+> Implementados y corregidos en Interpreter.ts y TypeChecker.ts:
+>   - Corrección de input() usando fs.readSync(0, ...) de forma síncrona y multiplataforma.
+>   - queue<T> y stack<T> como clases reales independientes con métodos propios (.enqueue/.dequeue, .push/.pop).
+>   - Verificación de tipos de elementos y argumentos al llamar a métodos de colección (evita añadir tipos incorrectos).
+>   - Inferencia estática del tipo del iterador en bucles for-in según la colección.
+>   - Verificación de operandos en expresiones aritméticas y lógicas, y detección de elementos de tipo mixto en listas literales.
+>
+> Resultado del test completo (npx tsc && node dist/compiler.cli/test_features.js): EXITOSO - todas las pruebas pasan
+>
+> PROXIMA SESION - Empezar por:
+>   1. Modularización del lenguaje (sistema de importación)
+>   2. Operadores de incremento y decremento (x++, x--)
+
+---
+
+> SESION 4 COMPLETADA (2026-06-15)
+>
+> Implementados en esta sesion (distribucion y tooling del lenguaje):
+>   - src/compiler.cli/re.ts: CLI ejecutable. Lee archivos .re desde argv, corre TypeChecker
+>     e Interpreter. Soporta flags: --version, --help, --check (solo analisis de tipos).
+>   - src/compiler.cli/re-lsp.ts: Servidor LSP completo sobre stdin/stdout usando
+>     vscode-languageserver/node. Publica diagnosticos LSP en tiempo real al editor
+>     (didOpen, didChange, didSave, didClose) traduciendo TypeCheckError a Diagnostic LSP.
+>   - scripts/add-shebangs.js: Script post-build que inserta "#!/usr/bin/env node" en
+>     re.js y re-lsp.js y les da permisos de ejecucion (chmod +x).
+>   - install.sh: Instalador Bash para Linux/macOS. Verifica Node.js/npm, instala deps,
+>     compila, y crea symlinks en /usr/local/bin/re y /usr/local/bin/re-lsp.
+>   - install.ps1: Instalador PowerShell para Windows. Crea wrappers .cmd y agrega
+>     la ruta al PATH del usuario (sin requerir Admin para el PATH).
+>   - package.json: Actualizado con campos "bin" (re y re-lsp), script "build" que
+>     corre tsc + add-shebangs.js, y dependencias vscode-languageserver v9 y
+>     vscode-languageserver-textdocument v1.
+>   - hola.re: Programa de prueba para verificar el funcionamiento de la CLI.
+>
+> Resultado de las pruebas:
+>   - npx tsc: EXITOSO (0 errores de TypeScript)
+>   - node dist/compiler.cli/re.js --version: "re 1.0.0" OK
+>   - node dist/compiler.cli/re.js --help: Muestra ayuda completa OK
+>   - node dist/compiler.cli/re.js hola.re: Ejecuta el programa correctamente OK
+>   - node dist/compiler.cli/re.js /tmp/error_test.re: Detecta error de tipo OK
+>   - node dist/compiler.cli/re.js hola.re --check: "sin errores" OK
+>
+> PROXIMA SESION - Empezar por:
+>   1. Publicación y empaquetado final de la extensión de VS Code a un archivo .vsix usando la herramienta vsce.
+>   2. Creación del repositorio de extensiones local o publicación en la Marketplace de VS Code.
+>   3. Integrar sistema de importación y modularización ("import") en el parser e intérprete.
+
+---
+
+> SESION 5 COMPLETADA (2026-06-15)
+>
+> Implementados en esta sesion (soporte para editores y tutorial de RE):
+>   - editors/vscode/package.json: Registro oficial de la extensión de VS Code para el lenguaje "re"
+>     (con extensión .re), enlace al archivo de gramática y definición de comandos de compilación.
+>   - editors/vscode/tsconfig.json: Configuración específica de TypeScript para compilar la extensión.
+>   - editors/vscode/language-configuration.json: Configuración para auto-cierre de corchetes, comillas y comentarios de línea/bloque.
+>   - editors/vscode/syntaxes/re.tmLanguage.json: Gramática TextMate completa en JSON. Colorea keywords (program, static, print, input, return, logic/arithmetic ops), tipos (primitive + collection) y números/literales.
+>   - editors/vscode/src/extension.ts: Cliente de lenguaje LSP de VS Code. Se conecta con el ejecutable "re-lsp" del PATH de forma limpia y redirige las salidas para depuración. Compilado con TypeScript exitosamente.
+>   - TUTORIAL.md: Guía integral de instalación, uso de la CLI, reglas básicas de sintaxis de RE (incluyendo variables, colecciones, funciones) y cómo integrar re-lsp en VS Code, Neovim, Sublime Text y Helix.
+>
+> Pruebas y compilación:
+>   - Compilación de la extensión en editors/vscode: EXITOSA (npx tsc compila sin advertencias ni errores).
+>   - Verificación de la gramática de sintaxis: Estructurada según el esquema estándar de TextMate.
+
+
