@@ -1,43 +1,510 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
-  </head>
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>LOGOS — Editor de Código & Diagramas</title>
+    <!-- Tailwind (offline: sustituir por CSS generado en producción) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#c3c7cd",
+                        "surface-container-lowest": "#0c0e17",
+                        "primary-fixed": "#dde1ff",
+                        "on-tertiary-fixed": "#380d00",
+                        "on-secondary": "#2c3136",
+                        "tertiary-container": "#c24100",
+                        "surface-container-highest": "#33343e",
+                        "tertiary-fixed": "#ffdbcf",
+                        "surface-dim": "#11131c",
+                        "surface-bright": "#373943",
+                        "surface-variant": "#33343e",
+                        "surface-container-low": "#191b24",
+                        "on-surface-variant": "#c4c5d9",
+                        "on-secondary-container": "#b4b9bf",
+                        "on-primary-fixed-variant": "#0035be",
+                        "background": "#11131c",
+                        "inverse-primary": "#124af0",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-high": "#282933",
+                        "on-background": "#e2e1ef",
+                        "on-primary-container": "#efefff",
+                        "secondary-fixed-dim": "#c3c7cd",
+                        "secondary-container": "#454a4f",
+                        "on-primary-fixed": "#001356",
+                        "inverse-on-surface": "#2e303a",
+                        "primary-container": "#2e5bff",
+                        "on-secondary-fixed": "#171c20",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-tertiary-container": "#ffece6",
+                        "on-surface": "#e2e1ef",
+                        "error-container": "#93000a",
+                        "surface": "#11131c",
+                        "outline": "#8e90a2",
+                        "outline-variant": "#434656",
+                        "on-tertiary": "#5b1a00",
+                        "secondary-fixed": "#dfe3e9",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "surface-container": "#1d1f29",
+                        "on-primary": "#002388",
+                        "inverse-surface": "#e2e1ef",
+                        "primary": "#b8c3ff",
+                        "primary-fixed-dim": "#b8c3ff",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "tertiary": "#ffb59b"
+                    },
+                    "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                    "spacing": { "base": "8px", "container-max": "1280px", "margin-mobile": "16px", "margin-desktop": "64px", "gutter": "24px" },
+                    "fontFamily": {
+                        "headline-md": ["Bodoni Moda"], "display-lg": ["Bodoni Moda"], "body-md": ["Hanken Grotesk"],
+                        "display-lg-mobile": ["Bodoni Moda"], "label-sm": ["Space Mono"], "body-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg-mobile": ["40px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.7", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #11131c; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #434656; border-radius: 10px; }
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+        .blueprint-grid {
+            background-color: #0c0e17;
+            background-image:
+                linear-gradient(rgba(184, 195, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(184, 195, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(rgba(184, 195, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(184, 195, 255, 0.02) 1px, transparent 1px);
+            background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+        }
+        .flow-node { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .flow-node:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(184, 195, 255, 0.15); border-color: #b8c3ff; }
+        .diamond { width: 140px; height: 140px; transform: rotate(45deg); }
+        .diamond-content { transform: rotate(-45deg); }
+        .etching-overlay { pointer-events: none; opacity: 0.04; background-image: url("https://www.transparenttextures.com/patterns/black-linen.png"); }
 
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+        .view-hidden { display: none !important; }
+        .view-visible { display: flex; }
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
-  </body>
+        .activity-btn { transition: all 0.2s ease; position: relative; }
+        .activity-btn.active { color: #b8c3ff; }
+        .activity-btn.active::before { content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background: #b8c3ff; border-radius: 0 4px 4px 0; }
+        .activity-btn:not(.active) { color: rgba(196, 197, 217, 0.4); }
+        .activity-btn:not(.active):hover { color: #e2e1ef; }
+
+        /* Ace Editor */
+        #editor-container { width: 100%; height: 100%; background: #11131c; }
+        .ace_editor { background: #11131c !important; font-family: 'Space Mono', monospace !important; font-size: 14px; line-height: 1.6; }
+        .ace_gutter { background: #0c0e17 !important; color: #434656 !important; }
+        .ace_gutter-active-line { background: rgba(46, 91, 255, 0.08) !important; }
+        .ace_marker-layer .ace_active-line { background: rgba(46, 91, 255, 0.05) !important; }
+        .ace_cursor { border-left: 2px solid #b8c3ff !important; }
+        .ace_selection { background: rgba(184, 195, 255, 0.2) !important; }
+        .ace_scrollbar::-webkit-scrollbar { width: 4px; }
+        .ace_scrollbar::-webkit-scrollbar-thumb { background: #434656; border-radius: 2px; }
+        .ace_scrollbar.ace_scrollbar-h { height: 4px; }
+
+        /* Resizer handles */
+        .resizer { transition: background 0.15s; }
+        .resizer:hover, .resizer:active { background: rgba(184, 195, 255, 0.3); }
+        .vertical-resizer { cursor: col-resize; width: 4px; }
+        .horizontal-resizer { cursor: row-resize; height: 4px; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary/30 h-screen w-screen overflow-hidden flex flex-col">
+    <div class="flex flex-1 overflow-hidden">
+        <!-- ═══ SIDEBAR ═══ -->
+        <div class="flex h-full flex-shrink-0" id="sidebar-container">
+            <!-- Activity Bar (solo Code y Flow) -->
+            <div class="w-12 bg-surface-container-lowest border-r border-outline/10 flex flex-col items-center py-4 gap-3 z-50">
+                <div class="text-primary mb-2 cursor-default" id="brand-icon">
+                    <span class="font-headline-md text-lg font-bold tracking-tighter">L</span>
+                </div>
+                <button class="activity-btn active flex flex-col items-center gap-0.5" id="btn-code" title="Editor de Código">
+                    <span class="material-symbols-outlined text-[22px]">code</span>
+                    <span class="text-[8px] font-label-sm tracking-tight">CODE</span>
+                </button>
+                <button class="activity-btn flex flex-col items-center gap-0.5" id="btn-blueprint" title="Diagramas de Flujo">
+                    <span class="material-symbols-outlined text-[22px]">account_tree</span>
+                    <span class="text-[8px] font-label-sm tracking-tight">FLOW</span>
+                </button>
+                <div class="flex-1"></div>
+                <!-- Toggle del explorador -->
+                <button class="activity-btn flex flex-col items-center gap-0.5" id="btn-toggle-explorer" title="Explorador">
+                    <span class="material-symbols-outlined text-[22px]">folder_open</span>
+                </button>
+            </div>
+
+            <!-- Panel del Explorador (colapsable y redimensionable) -->
+            <div id="explorer-panel" class="bg-surface-container-low border-r border-outline/10 flex flex-col" style="width: 220px;">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-outline/10">
+                    <span class="font-headline-md text-sm text-on-surface">Explorador</span>
+                    <button id="btn-collapse-explorer" class="text-outline hover:text-primary transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </button>
+                </div>
+                <div class="flex flex-col flex-1">
+                    <div class="px-2 py-1 flex items-center gap-1 text-[12px] font-bold text-on-surface bg-surface-container-high/30">
+                        <span class="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+                        <span class="font-headline-md text-xs">LOGOS-PROJECT</span>
+                    </div>
+                    <div class="flex flex-col mt-1">
+                        <div class="flex items-center gap-2 px-6 py-1 text-primary bg-surface-container-highest/50 cursor-pointer">
+                            <span class="material-symbols-outlined text-[16px]">description</span>
+                            <span class="text-[13px]">main.re</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-6 py-1 text-on-surface-variant hover:bg-surface-container-high/30 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">description</span>
+                            <span class="text-[13px]">funciones.re</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-6 py-1 text-on-surface-variant hover:bg-surface-container-high/30 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">description</span>
+                            <span class="text-[13px]">tipos.re</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-6 py-1 text-on-surface-variant hover:bg-surface-container-high/30 cursor-pointer transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">description</span>
+                            <span class="text-[13px]">colecciones.re</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Resizer vertical para el explorador -->
+            <div id="explorer-resizer" class="resizer vertical-resizer h-full bg-transparent"></div>
+        </div>
+
+        <!-- ═══ MAIN CONTENT ═══ -->
+        <main class="flex-1 flex flex-col relative overflow-hidden">
+            <!-- Tabs Code -->
+            <div class="flex bg-surface-container-low border-b border-outline/10 h-11 flex-shrink-0" id="tabs-code">
+                <div class="px-6 h-full flex items-center bg-surface-container-highest text-primary border-t-2 border-primary font-label-sm gap-2 cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">description</span>
+                    <span class="font-headline-md text-sm">main.re</span>
+                </div>
+                <div class="px-6 h-full flex items-center text-on-surface-variant font-label-sm gap-2 border-r border-outline/10 hover:bg-surface-container-high cursor-pointer">funciones.re</div>
+                <div class="px-6 h-full flex items-center text-on-surface-variant font-label-sm gap-2 border-r border-outline/10 hover:bg-surface-container-high cursor-pointer">tipos.re</div>
+                <div class="px-6 h-full flex items-center text-on-surface-variant font-label-sm gap-2 border-r border-outline/10 hover:bg-surface-container-high cursor-pointer">colecciones.re</div>
+                <div class="ml-auto flex items-center px-4 gap-4"><span class="font-label-sm text-on-surface-variant opacity-50">RE 1.0.0</span></div>
+            </div>
+            <!-- Tabs Blueprint -->
+            <div class="bg-surface-container-lowest/80 backdrop-blur border-b border-outline/10 h-11 flex-shrink-0 items-center px-4 view-hidden" id="tabs-blueprint">
+                <div class="flex items-center space-x-3 text-[11px] font-label-sm tracking-widest text-outline">
+                    <span class="hover:text-primary cursor-pointer">PROJECTS</span><span>/</span><span class="text-on-surface">GREETING_ALGORITHM.FLW</span>
+                </div>
+                <div class="ml-auto flex items-center space-x-4">
+                    <button class="font-label-sm text-[10px] text-primary hover:text-primary-fixed flex items-center gap-1"><span class="material-symbols-outlined text-sm">play_arrow</span> RUN_SIMULATION</button>
+                    <div class="w-px h-3 bg-outline/20"></div>
+                    <button class="font-label-sm text-[10px] text-outline hover:text-primary">EXPORT_SVG</button>
+                </div>
+            </div>
+
+            <!-- VIEWS -->
+            <!-- Code View -->
+            <div class="flex-1 flex flex-col overflow-hidden" id="view-code">
+                <div class="flex-1 flex overflow-hidden">
+                    <div class="flex-1" id="editor-container"></div>
+                </div>
+                <!-- Terminal (colapsable y redimensionable) -->
+                <div id="terminal-section" class="flex flex-col flex-shrink-0" style="height: 220px;">
+                    <div id="terminal-resizer" class="resizer horizontal-resizer w-full bg-transparent"></div>
+                    <div class="flex-1 bg-surface-container border-t border-outline/20 flex flex-col">
+                        <div class="flex items-center px-gutter py-2 border-b border-outline/10 bg-surface-container-high/50">
+                            <span class="font-headline-md text-xs tracking-mono text-outline">SALIDA</span>
+                            <span class="material-symbols-outlined text-outline text-[14px] mx-2">arrow_forward</span>
+                            <span class="font-label-sm text-label-sm tracking-mono text-tertiary">Esperando ejecución...</span>
+                            <button id="btn-toggle-terminal" class="ml-auto text-outline hover:text-primary transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
+                            </button>
+                        </div>
+                        <div class="flex-1 p-4 font-label-sm text-on-surface-variant overflow-y-auto custom-scrollbar bg-surface-container-lowest" id="output-area">
+                            <div class="flex gap-2"><span class="text-primary opacity-50">&gt;</span><span class="animate-pulse">_</span></div>
+                        </div>
+                        <div class="p-3 bg-surface-container-low flex items-center justify-between border-t border-outline/5 flex-wrap gap-2">
+                            <div class="flex gap-2">
+                                <button id="btn-execute" class="bg-primary-container text-on-primary-container px-5 py-2 rounded-lg font-headline-md text-sm flex items-center gap-2 hover:bg-inverse-primary transition-all active:scale-95">
+                                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span> Ejecutar
+                                </button>
+                                <button id="btn-clear" class="border border-outline/30 text-on-surface px-4 py-2 rounded-lg font-headline-md text-sm hover:bg-surface-container-high transition-all">Limpiar</button>
+                                <button class="border border-outline/30 text-on-surface px-4 py-2 rounded-lg font-headline-md text-sm flex items-center gap-2 hover:bg-surface-container-high transition-all">
+                                    <span class="material-symbols-outlined text-[18px]">download</span> Exportar .re
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-2 opacity-60">
+                                <div class="flex gap-1">
+                                    <span class="px-1.5 py-0.5 rounded border border-outline/30 bg-surface-container-highest text-[10px] font-label-sm">Ctrl</span>
+                                    <span class="text-[10px]">+</span>
+                                    <span class="px-1.5 py-0.5 rounded border border-outline/30 bg-surface-container-highest text-[10px] font-label-sm">Enter</span>
+                                </div>
+                                <span class="font-headline-md text-[10px] uppercase tracking-widest ml-1">EJECUTAR</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blueprint View -->
+            <div class="flex-1 flex flex-col overflow-hidden view-hidden" id="view-blueprint">
+                <section class="flex-1 blueprint-grid relative overflow-hidden">
+                    <div class="etching-overlay absolute inset-0"></div>
+                    <div class="absolute inset-0 p-12 overflow-auto custom-scrollbar">
+                        <svg class="absolute inset-0 w-full h-full pointer-events-none" style="filter: drop-shadow(0 0 1px rgba(184, 195, 255, 0.4))">
+                            <defs><marker id="arrowhead" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5"><polygon fill="#b8c3ff" points="0 0, 10 3.5, 0 7"></polygon></marker></defs>
+                            <path d="M 400 120 L 400 160" fill="none" marker-end="url(#arrowhead)" stroke="#b8c3ff" stroke-width="1.5"></path>
+                            <path d="M 400 240 L 400 280" fill="none" marker-end="url(#arrowhead)" stroke="#b8c3ff" stroke-width="1.5"></path>
+                            <path d="M 400 420 L 400 480" fill="none" marker-end="url(#arrowhead)" stroke="#b8c3ff" stroke-width="1.5"></path>
+                            <path d="M 470 350 C 600 350, 600 550, 400 550" fill="none" marker-end="url(#arrowhead)" stroke="#b8c3ff" stroke-dasharray="4" stroke-width="1.5"></path>
+                        </svg>
+                        <div class="flow-node absolute left-[320px] top-[60px] w-40 h-16 bg-primary-container/20 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-primary shadow-[0_0_15px_rgba(46,91,255,0.2)] cursor-pointer group" id="inicio-node">
+                            <span class="font-label-sm text-label-sm text-primary tracking-[0.2em] font-bold">INICIO</span>
+                            <div class="absolute -bottom-2 w-2 h-2 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                        <div class="flow-node absolute left-[280px] top-[160px] w-60 h-20 bg-surface-container-high/40 backdrop-blur-sm border border-outline/30 flex items-center justify-center cursor-pointer" style="clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);">
+                            <span class="font-label-sm text-label-sm text-on-surface-variant tracking-mono uppercase">LEER NOMBRE</span>
+                        </div>
+                        <div class="flow-node absolute left-[330px] top-[280px] diamond bg-surface-container-low/60 backdrop-blur-sm border-2 border-outline/40 flex items-center justify-center cursor-pointer group">
+                            <div class="diamond-content text-center"><span class="font-label-sm text-[10px] text-on-surface-variant tracking-tight uppercase">NOMBRE VACÍO?</span></div>
+                            <div class="absolute right-0 top-1/2 translate-x-12 -translate-y-1/2 font-label-sm text-[11px] text-primary opacity-60">SÍ</div>
+                        </div>
+                        <div class="flow-node absolute left-[270px] top-[480px] w-64 h-24 bg-surface-container/60 backdrop-blur-sm border border-primary/30 flex items-center justify-center px-6 text-center cursor-pointer">
+                            <span class="font-label-sm text-xs text-on-surface tracking-mono leading-relaxed">PRINT "¡HOLA, "<br/>+ NOMBRE</span>
+                        </div>
+                        <div class="flow-node absolute left-[650px] top-[300px] diamond bg-surface-container-low/20 border border-outline/10 flex items-center justify-center cursor-pointer opacity-30 hover:opacity-100 transition-opacity">
+                            <div class="diamond-content text-center"><span class="font-label-sm text-[9px] text-on-surface-variant tracking-mono uppercase">ALT_FLOW</span></div>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-6 right-6 flex space-x-2 z-20">
+                        <div class="flex items-center bg-surface-container-high/60 backdrop-blur-md rounded border border-outline/20 p-1">
+                            <button class="p-2 text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">remove</span></button>
+                            <span class="px-3 font-label-sm text-[10px] text-outline">100%</span>
+                            <button class="p-2 text-outline hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">add</span></button>
+                        </div>
+                        <button class="p-3 bg-surface-container-high/60 backdrop-blur-md rounded border border-outline/20 text-outline hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-sm">center_focus_strong</span>
+                        </button>
+                    </div>
+                    <div class="absolute bottom-6 left-6 bg-surface-container-lowest/90 px-5 py-2 border-l-2 border-primary font-label-sm text-[10px] text-outline tracking-[0.15em] uppercase flex space-x-6 z-20 backdrop-blur">
+                        <div class="flex items-center"><span class="text-primary mr-2">NODES</span> 7</div>
+                        <div class="flex items-center"><span class="text-primary mr-2">LINKS</span> 5</div>
+                        <div class="flex items-center"><span class="text-primary mr-2">LATENCY</span> 12ms</div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="h-6 bg-surface-container-lowest border-t border-outline/10 flex items-center px-3 text-[10px] font-label-sm text-outline gap-4 flex-shrink-0 z-30">
+                <span id="status-mode" class="text-primary">CODE_EDITOR</span>
+                <span class="opacity-50">|</span> <span>UTF-8</span> <span class="opacity-50">|</span> <span>RE 1.0.0</span> <span class="opacity-50">|</span>
+                <span>Ln <span id="cursor-line">1</span>, Col <span id="cursor-col">1</span></span>
+                <div class="ml-auto flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-primary/60"></span> SYNC</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="ace/ace.js"></script>
+    <script>
+        // ── Ace Editor ──
+        var editor = ace.edit("editor-container", {
+            mode: "ace/mode/javascript",
+            theme: "ace/theme/dracula",
+            fontSize: 14,
+            fontFamily: "Space Mono, monospace",
+            showPrintMargin: false,
+            useWorker: false,
+            enableBasicAutocompletion: true,
+            enableLiveAutocompletion: true,
+        });
+        editor.setValue(`program Principal {
+  // Entrada de datos
+  string nombre = input("¿Tu nombre? ");
+  print("¡Hola, " + nombre + "!");
+
+  // Calcular área de triángulo
+  int area = calcularArea(10, 5);
+  print("Área: " + to_str(area));
+
+  // Pi aproximado
+  double pi = 3.14159;
+  double suma = pi + pi;
+  print("Suma: " + to_str(suma));
+}`);
+        editor.clearSelection();
+        editor.gotoLine(1);
+
+        function updateCursorPos() {
+            var pos = editor.getCursorPosition();
+            document.getElementById('cursor-line').textContent = pos.row + 1;
+            document.getElementById('cursor-col').textContent = pos.column + 1;
+        }
+        editor.session.selection.on('changeCursor', updateCursorPos);
+        updateCursorPos();
+
+        // ── Terminal ──
+        const outputArea = document.getElementById('output-area');
+        document.getElementById('btn-execute').addEventListener('click', () => {
+            outputArea.innerHTML += '<div class="mb-1 text-primary">[SYSTEM] Iniciando secuencia...</div>';
+            setTimeout(() => outputArea.innerHTML += '<div class="mb-1 text-secondary">¿Tu nombre? <span class="text-on-surface">Admin_Root</span></div>', 500);
+            setTimeout(() => {
+                outputArea.innerHTML += '<div class="mb-1 text-on-surface">¡Hola, Admin_Root!</div>';
+                outputArea.innerHTML += '<div class="mb-1 text-on-surface">Área: 25.0</div>';
+                outputArea.innerHTML += '<div class="mb-1 text-on-surface">Suma: 6.28318</div>';
+                outputArea.innerHTML += '<div class="mt-2 text-tertiary">Proceso finalizado con código 0</div>';
+                outputArea.scrollTop = outputArea.scrollHeight;
+            }, 1200);
+        });
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            outputArea.innerHTML = '<div class="flex gap-2"><span class="text-primary opacity-50">&gt;</span><span class="animate-pulse">_</span></div>';
+        });
+
+        // ── Terminal colapsar/expandir ──
+        const terminalSection = document.getElementById('terminal-section');
+        const btnToggleTerminal = document.getElementById('btn-toggle-terminal');
+        let terminalVisible = true;
+        btnToggleTerminal.addEventListener('click', () => {
+            terminalVisible = !terminalVisible;
+            if (terminalVisible) {
+                terminalSection.style.height = '220px';
+                btnToggleTerminal.querySelector('span').textContent = 'keyboard_arrow_down';
+            } else {
+                terminalSection.style.height = '0px';
+                btnToggleTerminal.querySelector('span').textContent = 'keyboard_arrow_up';
+            }
+            editor.resize(); // Ajustar Ace
+        });
+
+        // ── Explorador colapsar/expandir ──
+        const explorerPanel = document.getElementById('explorer-panel');
+        const btnCollapseExplorer = document.getElementById('btn-collapse-explorer');
+        const btnToggleExplorer = document.getElementById('btn-toggle-explorer');
+        let explorerVisible = true;
+        function toggleExplorer() {
+            explorerVisible = !explorerVisible;
+            if (explorerVisible) {
+                explorerPanel.style.width = '220px';
+                document.getElementById('explorer-resizer').style.display = 'block';
+            } else {
+                explorerPanel.style.width = '0px';
+                document.getElementById('explorer-resizer').style.display = 'none';
+            }
+            editor.resize();
+        }
+        btnCollapseExplorer.addEventListener('click', toggleExplorer);
+        btnToggleExplorer.addEventListener('click', toggleExplorer);
+
+        // ── Redimensionar explorador (arrastrar resizer) ──
+        const resizer = document.getElementById('explorer-resizer');
+        let isResizing = false;
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const newWidth = e.clientX - 48; // 48px del activity bar
+            if (newWidth >= 100 && newWidth <= 500) {
+                explorerPanel.style.width = newWidth + 'px';
+                editor.resize();
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+            }
+        });
+
+        // ── Redimensionar terminal (arrastrar resizer horizontal) ──
+        const terminalResizer = document.getElementById('terminal-resizer');
+        let isTermResizing = false;
+        terminalResizer.addEventListener('mousedown', (e) => {
+            isTermResizing = true;
+            document.body.style.cursor = 'row-resize';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isTermResizing) return;
+            const mainRect = document.querySelector('main').getBoundingClientRect();
+            const newHeight = mainRect.bottom - e.clientY;
+            if (newHeight >= 80 && newHeight <= 600) {
+                terminalSection.style.height = newHeight + 'px';
+                editor.resize();
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            if (isTermResizing) {
+                isTermResizing = false;
+                document.body.style.cursor = '';
+            }
+        });
+
+        // ── Cambio de vistas (Code / Flow) ──
+        const btnCode = document.getElementById('btn-code');
+        const btnBlueprint = document.getElementById('btn-blueprint');
+        const viewCode = document.getElementById('view-code');
+        const viewBlueprint = document.getElementById('view-blueprint');
+        const tabsCode = document.getElementById('tabs-code');
+        const tabsBlueprint = document.getElementById('tabs-blueprint');
+        const statusMode = document.getElementById('status-mode');
+
+        function setMode(mode) {
+            if (mode === 'code') {
+                viewCode.classList.remove('view-hidden'); viewCode.classList.add('view-visible');
+                tabsCode.classList.remove('view-hidden'); tabsCode.classList.add('flex');
+                viewBlueprint.classList.add('view-hidden'); viewBlueprint.classList.remove('view-visible');
+                tabsBlueprint.classList.add('view-hidden'); tabsBlueprint.classList.remove('flex');
+                btnCode.classList.add('active'); btnBlueprint.classList.remove('active');
+                statusMode.textContent = 'CODE_EDITOR';
+                editor.resize();
+            } else {
+                viewBlueprint.classList.remove('view-hidden'); viewBlueprint.classList.add('view-visible');
+                tabsBlueprint.classList.remove('view-hidden'); tabsBlueprint.classList.add('flex');
+                viewCode.classList.add('view-hidden'); viewCode.classList.remove('view-visible');
+                tabsCode.classList.add('view-hidden'); tabsCode.classList.remove('flex');
+                btnBlueprint.classList.add('active'); btnCode.classList.remove('active');
+                statusMode.textContent = 'BLUEPRINT_CANVAS';
+            }
+        }
+        btnCode.addEventListener('click', () => setMode('code'));
+        btnBlueprint.addEventListener('click', () => setMode('blueprint'));
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); setMode('code'); }
+            if (e.ctrlKey && e.shiftKey && e.key === 'B') { e.preventDefault(); setMode('blueprint'); }
+        });
+
+        // ── Pulso nodo inicio ──
+        const inicioNode = document.getElementById('inicio-node');
+        if (inicioNode) {
+            let step = 0;
+            function pulse() {
+                step += 0.05;
+                inicioNode.style.boxShadow = `0 0 ${15 + Math.sin(step)*10}px rgba(46, 91, 255, ${0.2 + Math.sin(step)*0.1})`;
+                requestAnimationFrame(pulse);
+            }
+            pulse();
+        }
+
+        setMode('code');
+    </script>
+</body>
 </html>
