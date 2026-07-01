@@ -1,0 +1,98 @@
+PLAN DE ACCIÓN: INTEGRACIÓN DE RE LANGUAGE Y LOGOS EDITOR
+
+Este documento describe la arquitectura actual de ambos proyectos y detalla un plan de acción paso a paso para integrarlos de forma limpia, modular y eficiente. El plan está estructurado de manera que sea fácilmente interpretable y ejecutable por otras Inteligencias Artificiales o desarrolladores.
+
+================================================================================
+ANALISIS DE LA ARQUITECTURA ACTUAL
+================================================================================
+
+1. Proyecto "RE" (Motor del Lenguaje)
+* Tecnologías: TypeScript, Node.js, ANTLR4.
+* Componentes clave:
+  - Lexer y Parser (en RE/src/compiler.core): Generados por ANTLR4 a partir de gramáticas.
+  - TypeChecker.ts (en RE/src/compiler.core/Enviroment/TypeChecker.ts): Analizador estático de tipos. Detecta errores antes de la ejecución y retorna objetos TypeCheckError.
+  - Interpreter.ts (en RE/src/compiler.core/Enviroment/Interpreter.ts): Evaluador AST (Visitor) que ejecuta el código. Importa 'fs' para entrada/salida síncrona mediante los descriptores de archivos nativos de Node.js (process.stdin / descriptor 0).
+  - re.ts (CLI) (en RE/src/compiler.cli/re.ts): CLI principal. Permite analizar (--check) y ejecutar archivos .re.
+  - re-lsp.ts (Language Server) (en RE/src/compiler.cli/re-lsp.ts): Servidor LSP basado en JSON-RPC a través de stdin/stdout.
+
+2. Proyecto "Logos Editor" (Interfaz Gráfica)
+* Tecnologías: Tauri v2, Rust (src-tauri), Vite, TypeScript.
+* Componentes clave:
+  - index.html (en Logos Editor/index.html): Contiene toda la maquetación (HTML), estilos visuales de alta calidad (CSS) y toda la lógica de control del editor e interfaz de blueprint (JS inline).
+  - src/index.ts (en Logos Editor/src/index.ts): Archivo TypeScript vacío en la raíz del frontend.
+  - src-tauri (en Logos Editor/src-tauri): Boilerplate inicial de Tauri sin lógica personalizada ni comandos IPC para interactuar con el sistema de archivos o procesos de ejecución.
+  - ace (en Logos Editor/ace): Distribución local de Ace Editor lista para usarse, pero no integrada actualmente en la interfaz.
+
+================================================================================
+PLAN DE ACCIÓN PROPUESTO
+================================================================================
+
+El plan se divide en 5 hitos modulares e independientes.
+
+Hito 1: Refactorización y Estructura del Frontend
+Separar el archivo masivo index.html en archivos independientes y configurar el empaquetador (Vite) para compilar TypeScript correctamente.
+1. Vincular TypeScript: Modificar index.html para importar <script type="module" src="/src/index.ts"></script>.
+2. Extraer estilos (CSS): Mover los estilos integrados de index.html a un nuevo archivo src/index.css e importarlo en src/index.ts.
+3. Extraer lógica (JS): Trasladar todo el bloque <script> de index.html a src/index.ts o submódulos organizados (ej. src/blueprint.ts para el editor de flujos y src/editor.ts para la lógica del editor de código).
+
+Hito 2: Integración de Ace Editor y Modo "RE"
+Reemplazar el contenedor contenteditable básico por Ace Editor e implementar el resaltado de sintaxis nativo para RE.
+1. Montar Ace Editor: Instalar e inicializar Ace en el elemento DOM #codeArea.
+2. Crear Modo RE para Ace (mode-re.js):
+   - Crear un archivo de definición de lenguaje en src/mode-re.ts o usar la carpeta local de Ace.
+   - Mapear tokens clave basándose en la gramática de RE:
+     * Palabras clave (kw): program, string, int, double, bool, var, if, else, while, do, for, in, return, print, input, to_str, to_int, to_double.
+     * Estructuras de datos: list, array, queue, stack.
+     * Comentarios (cmt): //...
+     * Literales de texto (str), numéricos (num) y métodos integrados (fn).
+
+Hito 3: Canal IPC en Rust para Compilación y Ejecución (Tauri)
+Debido a que el intérprete de RE depende de I/O bloqueante de Node.js, debemos ejecutar el proceso de forma externa desde Rust y transmitir la salida.
+1. Definir Comandos Tauri en Rust (lib.rs):
+   - run_re_program: Comando para ejecutar código RE de forma interactiva.
+     * Guarda el código actual en un archivo temporal o en el workspace.
+     * Spawnea un proceso hijo con 'node' apuntando al CLI compiler 're' (ej. node RE/dist/compiler.cli/re.js archivo.re).
+     * Lee asíncronamente stdout y stderr del proceso hijo y los emite en tiempo real a la interfaz usando eventos de Tauri (tauri::Emitter).
+     * Escucha eventos de la interfaz para escribir en el stdin del proceso hijo (necesario para la función input()).
+   - check_re_code: Comando rápido de análisis estático.
+     * Spawnea el proceso con la flag --check (ej. re archivo.re --check).
+     * Captura la salida de error estructurada para mostrarla en el editor.
+   - Comandos del Explorador de Archivos: Implementar comandos seguros para navegar por directorios, abrir archivos y guardar cambios, eliminando dependencias de APIs frontend genéricas e inseguras.
+
+Hito 4: Puente de Diagnóstico y Errores (Linting)
+Proporcionar retroalimentación visual inmediata en el editor en caso de errores sintácticos o de tipos.
+1. Hook en Cambios de Editor: Cuando el usuario modifica el archivo, disparar un temporizador (debounce de 400ms) para llamar al comando Tauri check_re_code.
+2. Parsear Resultados en Frontend:
+   - Si la salida contiene errores, parsear la línea, columna y mensaje de error.
+   - Dado que el compilador de RE imprime errores con la estructura:
+     "[SyntaxError] Línea L:C mensaje" o "[TypeCheckError] en Línea L, Columna C: mensaje".
+   - Parsear estas líneas con expresiones regulares en TypeScript.
+3. Renderizar en Ace Editor:
+   - Limpiar marcas anteriores.
+   - Agregar anotaciones/marcadores en el canal lateral (gutter) y subrayados en rojo (red squigglies) en las líneas exactas del error usando la API de Ace Editor: editor.getSession().setAnnotations(...).
+
+Hito 5: Sincronización entre Diagrama de Flujo (Blueprint) y Código
+Actualmente, Logos Editor tiene una pestaña de "Flow" con figuras geométricas (Oval, Rect, Diamond, Para) que actúan de forma simulada.
+1. Compilador Visual (Blueprint -> RE):
+   - Crear una función en TypeScript para recorrer el grafo de nodos y conexiones de blueprint.
+   - Traducir las figuras a código RE equivalente:
+     * Nodos oval (INICIO/FIN) -> Bloque program NombreProgram { ... }.
+     * Nodos rect (PROCESO) -> Declaraciones y asignaciones de variables (ej. int x = 5).
+     * Nodos diamond (DECISIÓN) -> Estructuras condicionales if (...) { ... } else { ... } basadas en los puertos de salida (e/w/s).
+     * Nodos para / io (ENTRADA/SALIDA) -> Mapear a funciones print(...) o input(...).
+2. Generación automática: Actualizar el contenido de la pestaña de código dinámicamente cuando el usuario modifique el diagrama de flujo y viceversa (análisis básico del código RE para reconstruir bloques simples en el blueprint).
+
+================================================================================
+PLAN DE VERIFICACIÓN
+================================================================================
+
+1. Verificación del Entorno
+* Probar la compilación y ejecución local en Tauri:
+  cd "Logos Editor"
+  npm install
+  npm run tauri dev
+
+2. Pruebas de Integración
+* Resaltado de sintaxis: Escribir palabras clave de RE y confirmar que se aplican las clases CSS correctas en Ace Editor.
+* Consola interactiva: Ejecutar un archivo .re que contenga input() y validar que el editor detenga la ejecución, muestre un campo de texto para el usuario, escriba a stdin en la terminal del sistema y continúe la ejecución de manera interactiva.
+* TypeChecker: Escribir un error de tipo deliberado (ej: string a = 5;) y verificar que aparezca la advertencia visual en el editor de inmediato.

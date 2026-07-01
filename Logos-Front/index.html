@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <title>LOGOS IDE</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0&display=swap"
+            rel="stylesheet">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Hanken+Grotesk:wght@400;600;700&family=Bodoni+Moda:wght@700&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="/src/index.css" />
+    </head>
+    <body>
+        <div class="root" id="root">
+
+            <!-- ACTIVITY BAR -->
+            <div class="activity-bar">
+                <div class="brand">L</div>
+                <button class="act-btn active" id="btnCode"
+                    title="Editor de código">
+                    <span class="act-ico">code</span>
+                    <span class="act-lbl">CODE</span>
+                </button>
+                <button class="act-btn" id="btnFlow" title="Editor de flujo">
+                    <span class="act-ico">account_tree</span>
+                    <span class="act-lbl">FLOW</span>
+                </button>
+                <div class="spacer"></div>
+                <div class="sep"></div>
+                <button class="act-btn" id="btnSide" title="Panel lateral">
+                    <span class="act-ico">dock_to_right</span>
+                </button>
+            </div>
+
+            <!-- SIDE PANEL (contenido dinámico) -->
+            <div class="side-wrap" id="sideWrap">
+                <div class="side-panel">
+                    <div class="side-header">
+                        <span class="side-title" id="sideTitle">
+                            <span class="ico">folder_open</span> EXPLORADOR
+                        </span>
+                        <button class="side-close" id="btnCloseSide"
+                            title="Cerrar panel">close</button>
+                    </div>
+
+                    <!-- EXPLORER (solo en CODE) -->
+                    <div id="explorerContent" class="explorer-content">
+                        <div class="exp-section-hdr" id="expHdr">
+                            <span class="exp-arrow"
+                                id="expArrow">keyboard_arrow_down</span>
+                            <span>LOGOS-PROJECT</span>
+                        </div>
+                        <div class="exp-files" id="expFiles">
+                            <div class="file-item active"><span
+                                    class="file-ico">description</span>main.re</div>
+                            <div class="file-item"><span
+                                    class="file-ico">description</span>funciones.re</div>
+                            <div class="file-item"><span
+                                    class="file-ico">description</span>tipos.re</div>
+                            <div class="file-item"><span
+                                    class="file-ico">description</span>colecciones.re</div>
+                        </div>
+                    </div>
+
+                    <!-- TOOLBOX (solo en FLOW) -->
+                    <div id="toolboxContent" class="toolbox-content"
+                        style="display:none">
+
+                        <!-- HERRAMIENTA ACTIVA -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr"
+                                onclick="toggleSection(this)">
+                                <span
+                                    class="exp-arrow">keyboard_arrow_down</span>
+                                HERRAMIENTAS
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="tool-row">
+                                    <button class="tool-btn active"
+                                        id="toolSelect"
+                                        onclick="setTool('select')">
+                                        <span
+                                            class="ico">arrow_selector_tool</span>
+                                        Seleccionar
+                                    </button>
+                                    <button class="tool-btn" id="toolConnect"
+                                        onclick="setTool('connect')">
+                                        <span class="ico">call_split</span>
+                                        Conectar
+                                    </button>
+                                    <button class="tool-btn" id="toolDelete"
+                                        onclick="setTool('delete')">
+                                        <span class="ico">delete</span> Eliminar
+                                    </button>
+                                    <button class="tool-btn" id="toolPan"
+                                        onclick="setTool('pan')">
+                                        <span class="ico">pan_tool</span>
+                                        Desplazar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FORMAS -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr"
+                                onclick="toggleSection(this)">
+                                <span
+                                    class="exp-arrow">keyboard_arrow_down</span>
+                                FIGURAS
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="tool-grid">
+                                    <div class="shape-card" draggable="true"
+                                        data-type="oval" title="Inicio / Fin">
+                                        <div class="shape-preview"><div
+                                                class="prev-oval"
+                                                style="color:var(--primary)"></div></div>
+                                        INICIO/FIN
+                                    </div>
+                                    <div class="shape-card" draggable="true"
+                                        data-type="rect" title="Proceso">
+                                        <div class="shape-preview"><div
+                                                class="prev-rect"
+                                                style="color:var(--on-bg-dim)"></div></div>
+                                        PROCESO
+                                    </div>
+                                    <div class="shape-card" draggable="true"
+                                        data-type="diamond" title="Decisión">
+                                        <div class="shape-preview"><div
+                                                class="prev-diamond"
+                                                style="color:var(--on-bg-dim)"></div></div>
+                                        DECISIÓN
+                                    </div>
+                                    <div class="shape-card" draggable="true"
+                                        data-type="para" title="Entrada/Salida">
+                                        <div class="shape-preview"
+                                            style="position:relative"><div
+                                                class="prev-para"
+                                                style="color:var(--on-bg-dim)"></div><div
+                                                class="prev-para-border"
+                                                style="color:var(--on-bg-dim);position:absolute;top:0"></div></div>
+                                        E/S
+                                    </div>
+                                    <div class="shape-card" draggable="true"
+                                        data-type="io" title="Dato">
+                                        <div class="shape-preview"><div
+                                                class="prev-oval"
+                                                style="color:var(--on-bg-dim);border-radius:50px"></div></div>
+                                        DATO
+                                    </div>
+                                    <div class="shape-card" draggable="true"
+                                        data-type="term" title="Terminal">
+                                        <div class="shape-preview"><div
+                                                class="prev-oval"
+                                                style="color:var(--error)"></div></div>
+                                        TERMINAL
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLORES -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr"
+                                onclick="toggleSection(this)">
+                                <span
+                                    class="exp-arrow">keyboard_arrow_down</span>
+                                COLOR DE NODO
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="color-row" id="colorSwatches">
+                                    <div class="swatch active"
+                                        data-color="#b8c3ff"
+                                        style="background:#b8c3ff"
+                                        title="Azul"></div>
+                                    <div class="swatch" data-color="#ffb59b"
+                                        style="background:#ffb59b"
+                                        title="Naranja"></div>
+                                    <div class="swatch" data-color="#a8e6cf"
+                                        style="background:#a8e6cf"
+                                        title="Verde"></div>
+                                    <div class="swatch" data-color="#ffb4ab"
+                                        style="background:#ffb4ab"
+                                        title="Rojo"></div>
+                                    <div class="swatch" data-color="#dde1ff"
+                                        style="background:#dde1ff"
+                                        title="Blanco"></div>
+                                    <div class="swatch" data-color="#c3c7cd"
+                                        style="background:#c3c7cd"
+                                        title="Gris"></div>
+                                    <div class="swatch" data-color="#ffe082"
+                                        style="background:#ffe082"
+                                        title="Amarillo"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr"
+                                onclick="toggleSection(this)">
+                                <span
+                                    class="exp-arrow">keyboard_arrow_down</span>
+                                ACCIONES
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="tool-row">
+                                    <button class="tool-btn"
+                                        onclick="clearCanvas()"><span
+                                            class="ico">delete_sweep</span>
+                                        Limpiar lienzo</button>
+                                    <button class="tool-btn"
+                                        onclick="autoLayout()"><span
+                                            class="ico">auto_fix_high</span>
+                                        Auto-ordenar</button>
+                                    <button class="tool-btn"
+                                        onclick="exportSVG()"><span
+                                            class="ico">download</span> Exportar
+                                        SVG</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /toolboxContent -->
+                </div><!-- /side-panel -->
+                <div class="side-resizer" id="sideResizer"
+                    title="Arrastra para redimensionar el panel lateral">
+                    <span class="side-resizer-tip">drag_indicator</span>
+                </div>
+            </div><!-- /side-wrap -->
+
+            <!-- MAIN -->
+            <div class="main">
+
+                <!-- TABS CODE -->
+                <div class="tabs" id="tabsCode">
+                    <div class="tab active"><span
+                            class="tab-ico">description</span>main.re</div>
+                    <div class="tab">funciones.re</div>
+                    <div class="tab">tipos.re</div>
+                    <div class="tabs-right"><span class="tabs-badge">RE
+                            1.0.0</span></div>
+                </div>
+
+                <!-- TABS FLOW -->
+                <div class="tabs hidden" id="tabsFlow">
+                    <div class="tab active"><span
+                            class="tab-ico">account_tree</span>flujo_principal.flw</div>
+                    <div class="tabs-right"><span class="tabs-badge"
+                            id="flowStats">0 nodos</span></div>
+                </div>
+
+                <!-- CODE VIEW -->
+                <div class="view" id="viewCode">
+                    <div class="editor-area">
+                        <div id="codeArea"></div>
+                    </div>
+                    <!-- TERMINAL -->
+                    <div class="term-wrap" id="termWrap">
+                        <div class="term-resizer" id="termResizer"
+                            title="Arrastra para redimensionar la consola"></div>
+                        <div class="term-body">
+                            <div class="term-header">
+                                <span class="term-label">SALIDA</span>
+                                <span class="term-status"
+                                    id="termStatus">Esperando ejecución…</span>
+                                <div class="term-btns">
+                                    <button class="term-btn run" id="btnRun">▶
+                                        Ejecutar</button>
+                                    <button class="term-btn clr"
+                                        id="btnClear">Limpiar</button>
+                                </div>
+                                <button class="term-collapse"
+                                    id="btnCollapseTerm">keyboard_arrow_down</button>
+                            </div>
+                            <div class="term-output" id="termOutput">
+                                <div class="out-line"><span
+                                        class="out-prompt">›</span><span
+                                        class="cursor-blink">_</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FLOW VIEW -->
+                <div class="view hidden" id="viewFlow">
+                    <div class="blueprint" id="blueprint">
+                        <!-- toolbar -->
+                        <div class="bp-toolbar">
+                            <button class="bp-tb-btn active" id="tbSelect"
+                                title="Seleccionar (V)"
+                                onclick="setTool('select')">arrow_selector_tool</button>
+                            <button class="bp-tb-btn" id="tbConnect"
+                                title="Conectar (C)"
+                                onclick="setTool('connect')">call_split</button>
+                            <button class="bp-tb-btn" id="tbDelete"
+                                title="Eliminar (D)"
+                                onclick="setTool('delete')">delete</button>
+                            <button class="bp-tb-btn" id="tbPan"
+                                title="Desplazar (P)"
+                                onclick="setTool('pan')">pan_tool</button>
+                            <div class="bp-tb-sep"></div>
+                            <button class="bp-tb-btn" title="Deshacer (Ctrl+Z)"
+                                onclick="undo()">undo</button>
+                            <button class="bp-tb-btn" title="Limpiar"
+                                onclick="clearCanvas()">delete_sweep</button>
+                            <button class="bp-tb-btn" title="Auto-ordenar"
+                                onclick="autoLayout()">auto_fix_high</button>
+                        </div>
+                        <!-- canvas for connections -->
+                        <canvas id="bpCanvas"></canvas>
+                        <!-- node container -->
+                        <div class="bp-nodes" id="bpNodes"></div>
+                        <!-- zoom -->
+                        <div class="bp-zoom">
+                            <button class="bp-zoom-btn"
+                                onclick="changeZoom(-.1)">remove</button>
+                            <span class="bp-zoom-label"
+                                id="zoomLabel">100%</span>
+                            <button class="bp-zoom-btn"
+                                onclick="changeZoom(.1)">add</button>
+                            <button class="bp-zoom-btn" onclick="changeZoom(0)"
+                                title="Resetear">crop_free</button>
+                        </div>
+                        <!-- stats -->
+                        <div class="bp-stats">
+                            <div class="bp-stat"><span>NODOS</span><span
+                                    id="statNodes">0</span></div>
+                            <div class="bp-stat"><span>LINKS</span><span
+                                    id="statLinks">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STATUS BAR -->
+                <div class="statusbar">
+                    <span class="status-mode" id="statusMode">CODE_EDITOR</span>
+                    <span class="status-sep">|</span><span>UTF-8</span>
+                    <span class="status-sep">|</span><span>RE 1.0.0</span>
+                    <span class="status-sep">|</span>
+                    <span>Ln <span id="cursorLine">1</span>, Col <span
+                            id="cursorCol">1</span></span>
+                    <div class="status-right"><div
+                            class="status-dot"></div><span>SYNC</span></div>
+                </div>
+            </div><!-- /main -->
+        </div><!-- /root -->
+
+        <div class="toast" id="toast"></div>
+        <div class="drag-ghost" id="dragGhost" style="display:none"></div>
+
+        <script src="/ace/ace.js"></script>
+        <script type="module" src="/src/index.ts"></script>
+    </body>
+</html>

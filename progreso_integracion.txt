@@ -1,0 +1,24 @@
+ESTADO DE LA INTEGRACIÓN DE RE LANGUAGE Y LOGOS EDITOR
+
+Última actualización: 2026-07-01
+
+1. ESTADO ACTUAL:
+* Hito 1 (Refactorización y Estructura del Frontend): COMPLETADO. index.html ya importa /src/index.ts, los estilos están en /src/index.css y la lógica en /src/index.ts.
+* Hito 2 (Integración de Ace Editor y Modo "RE"): COMPLETADO.
+  - La carpeta de Ace Editor fue copiada a public/ace.
+  - index.html fue modificado para incrustar el script de Ace y reemplazar el editor básico con <div id="codeArea">.
+  - index.css fue modificado para estilizar #codeArea y adaptar la paleta de colores de Ace al tema del IDE.
+  - index.ts fue modificado para inicializar Ace con el tema "one_dark" y configurar el modo personalizado "re" para el resaltado de sintaxis de RE. Se limpió todo el código antiguo redundante y se vinculó la selección del cursor con los indicadores de la barra de estado.
+  - La compilación mediante `npm run build` corre correctamente sin ningún error.
+
+2. TAREAS PENDIENTES (Siguiente paso: Hito 3):
+* Hito 3: Canal IPC en Rust para Compilación y Ejecución (Tauri)
+  - Definir Comandos Tauri en Rust (lib.rs) para:
+    * run_re_program: Ejecutar código RE usando node apuntando al intérprete, capturando stdout/stderr asíncronamente y emitiéndolos por IPC, y escuchando stdin.
+    * check_re_code: Análisis estático rápido (--check) para reportar errores estructurales.
+    * Comandos del Explorador de Archivos (seguros para abrir, guardar y listar archivos).
+  - Integrar estos comandos IPC en el frontend (index.ts) reemplazando la simulación actual de la terminal.
+
+3. HITOS POSTERIORES:
+* Hito 4: Puente de Diagnóstico y Errores (Linting)
+* Hito 5: Sincronización entre Diagrama de Flujo (Blueprint) y Código
