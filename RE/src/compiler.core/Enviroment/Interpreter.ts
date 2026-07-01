@@ -3,7 +3,6 @@ import { Re_ParserVisitor } from '../Re_ParserVisitor.js';
 import {
     ProgramContext,
     Print_statementContext,
-    Input_statementContext,
     ExpressionContext,
     Var_declContext,
     Var_assignContext,
@@ -462,40 +461,7 @@ export class Interpreter extends AbstractParseTreeVisitor<any> implements Re_Par
     // (Nota: en modo script lee de stdin de forma síncrona con una
     // implementacion simplificada; para produccion usar async/await)
     // ================================================================
-    visitInput_statement(ctx: Input_statementContext): any {
-        const varName = ctx.ID().text;
 
-        // Obtener el prompt si se proveyó
-        let prompt = '';
-        if (ctx.STRING()) {
-            const raw = ctx.STRING()!.text;
-            prompt = raw.substring(1, raw.length - 1);
-        }
-
-        // Mostrar el prompt al usuario sin salto de línea
-        if (prompt) fs.writeSync(1, prompt);
-
-        // Leer de stdin de forma síncrona byte a byte hasta \n
-        // Usa fs.readSync(0, ...) que lee del fd 0 (stdin) directamente
-        const chunks: Buffer[] = [];
-        const buf = Buffer.alloc(1);
-        try {
-            while (true) {
-                const n = fs.readSync(0, buf, 0, 1, null);
-                if (n === 0) break;           // EOF
-                if (buf[0] === 0x0a) break;   // '\n'
-                if (buf[0] !== 0x0d) {        // ignorar '\r' (Windows)
-                    chunks.push(Buffer.from([buf[0]!]));
-                }
-            }
-        } catch {
-            // Si stdin no es interactivo (p.ej. en pruebas) devuelve string vacío
-        }
-
-        const inputValue = Buffer.concat(chunks).toString('utf8');
-        this.globalEnv.assign(varName, inputValue);
-        return null;
-    }
 
     // ================================================================
     // DECLARACION DE VARIABLES: int x = 5;  o  var y = "hola";
@@ -807,6 +773,51 @@ export class Interpreter extends AbstractParseTreeVisitor<any> implements Re_Par
         // --- Menos unario: -expr ---
         if (ctx.MINUS() && ctx.childCount === 2) {
             return -(this.visitExpression(ctx.expression(0)!));
+        }
+
+        // --- Input expression: input("prompt") ---
+        if ((ctx as any).INPUT && (ctx as any).INPUT()) {
+            // Obtener el prompt si se proveyó
+            let prompt = '';
+            if (ctx.STRING()) {
+                const raw = ctx.STRING()!.text;
+                prompt = raw.substring(1, raw.length - 1);
+            }
+
+            // Mostrar el prompt al usuario sin salto de línea
+            if (prompt) fs.writeSync(1, prompt);
+
+            // Leer de stdin de forma síncrona byte a byte hasta \n
+            const chunks: Buffer[] = [];
+            const buf = Buffer.alloc(1);
+            while (true) {
+                let n = 0;
+                let gotData = false;
+                while (true) {
+                    try {
+                        n = fs.readSync(0, buf, 0, 1, null);
+                        gotData = true;
+                        break;
+                    } catch (err: any) {
+                        if (err.code === 'EAGAIN' || err.code === 'EWOULDBLOCK') {
+                            // Esperar 50ms antes de reintentar para no saturar la CPU
+                            const sab = new SharedArrayBuffer(4);
+                            const int32 = new Int32Array(sab);
+                            Atomics.wait(int32, 0, 0, 50);
+                            continue;
+                        }
+                        console.error("[readSync error]", err);
+                        break;
+                    }
+                }
+                if (!gotData || n === 0) break;           // EOF o error
+                if (buf[0] === 0x0a) break;   // '\n'
+                if (buf[0] !== 0x0d) {        // ignorar '\r' (Windows)
+                    chunks.push(Buffer.from([buf[0]!]));
+                }
+            }
+
+            return Buffer.concat(chunks).toString('utf8');
         }
 
         // --- Operacion binaria: expr OP expr ---

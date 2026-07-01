@@ -13,9 +13,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "logos-editor",
-        "width": 800,
-        "height": 600
+        "title": "Logos IDE",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600
       }
     ],
     "security": {

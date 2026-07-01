@@ -115,26 +115,76 @@ function updateCursorPos() {
 editor.selection.on('changeCursor', updateCursorPos);
 
 /* ════════════════════════════════
+   TAURI IPC
+   ════════════════════════════════ */
+
+// Tauri está disponible como global gracias a withGlobalTauri: true
+const { invoke } = (window as any).__TAURI__.core;
+const { listen } = (window as any).__TAURI__.event;
+
+// Ruta absoluta al directorio del motor RE (relativa al workspace)
+// En desarrollo Tauri, el CWD es la carpeta Logos-Front.
+// El directorio RE está un nivel arriba.
+async function getRePath(): Promise<string> {
+    // Intentar usar el comando get_home_dir para confirmar que Tauri IPC funciona,
+    // luego construir la ruta a RE usando la ruta del ejecutable relativa al proyecto.
+    // En dev mode, __TAURI__.path nos da la appLocalDataDir, pero lo más simple
+    // es que el usuario configure la ruta, o usamos una ruta relativa al CWD.
+    // En producción, se recomienda empaquetar el intérprete junto al .exe.
+    // Por ahora calculamos la ruta esperada con respecto a la estructura del proyecto:
+    // Logos-Front/../RE → RE
+    try {
+        // Leer ruta guardada por el usuario en localStorage, o usar la default
+        return String(window.localStorage.getItem('re_path') || defaultRePath);
+    } catch {
+        return defaultRePath;
+    }
+}
+
+// Ruta por defecto al motor RE (relativa al workspace Logos-Front, nivel arriba = RE)
+// Se puede sobreescribir guardando en localStorage key='re_path'
+const defaultRePath = (() => {
+    // En Tauri dev, el proceso se lanza desde Logos-Front/
+    // La ruta al motor RE está en ../RE relativo a Logos-Front
+    // Usamos un path que el backend Rust resolverá de manera absoluta si se pasa
+    // la ruta absoluta. Lo más seguro: el usuario puede configurarla.
+    // Default: ruta conocida del proyecto en este equipo.
+    return 'c:\\Users\\zarat\\Logos\\RE';
+})();
+
+/* ════════════════════════════════
    TERMINAL
    ════════════════════════════════ */
 const termWrap = document.getElementById('termWrap') as HTMLDivElement;
 const termOutput = document.getElementById('termOutput') as HTMLDivElement;
 const termStatus = document.getElementById('termStatus') as HTMLSpanElement;
 const btnCollapseTerm = document.getElementById('btnCollapseTerm') as HTMLButtonElement;
-let termH = 220,
-    termCollapsed = false;
+const termInputArea = document.getElementById('termInputArea') as HTMLDivElement;
+const termInputField = document.getElementById('termInputField') as HTMLInputElement;
+const termInputSend = document.getElementById('termInputSend') as HTMLButtonElement;
+const btnStop = document.getElementById('btnStop') as HTMLButtonElement;
+
+let termH = 220, termCollapsed = false;
+let isRunning = false;
+let unlistenOutput: (() => void) | null = null;
+let unlistenDone: (() => void) | null = null;
+
+// Ruta actual del archivo abierto (para guardar con Ctrl+S)
+let currentFilePath: string | null = null;
 
 btnCollapseTerm.addEventListener('click', () => {
     termCollapsed = !termCollapsed;
     termWrap.style.height = termCollapsed ? '32px' : termH + 'px';
     btnCollapseTerm.textContent = termCollapsed ? 'keyboard_arrow_up' : 'keyboard_arrow_down';
 });
+
 document.getElementById('btnRun')!.addEventListener('click', runCode);
 document.getElementById('btnClear')!.addEventListener('click', () => {
     termOutput.innerHTML =
         '<div class="out-line"><span class="out-prompt">›</span><span class="cursor-blink">_</span></div>';
     termStatus.textContent = 'Esperando ejecución…';
     termStatus.style.color = 'var(--tertiary)';
+    hideTermInput();
     if (termCollapsed) {
         termCollapsed = false;
         termWrap.style.height = termH + 'px';
@@ -142,42 +192,170 @@ document.getElementById('btnClear')!.addEventListener('click', () => {
     }
 });
 
-function addLine(html: string, cls: string, delay: number): Promise<void> {
-    return new Promise(res => setTimeout(() => {
-        termOutput.querySelector('.cursor-blink')?.parentElement?.remove();
-        const d = document.createElement('div');
-        d.className = 'out-line';
-        d.innerHTML = `<span class="out-prompt">›</span><span class="${cls}">${html}</span>`;
-        termOutput.appendChild(d);
-        termOutput.scrollTop = termOutput.scrollHeight;
-        res();
-    }, delay));
+btnStop.addEventListener('click', async () => {
+    // Enviar señal de fin al proceso cerrando stdin
+    try {
+        await invoke('send_re_input', { input: '\x03' }); // Ctrl+C
+    } catch (_) {}
+    setRunningState(false);
+    appendLine('[SISTEMA] Ejecución interrumpida.', 'out-sys');
+});
+
+/* ── Helpers de terminal ── */
+function appendLine(text: string, cls: string = 'out-text') {
+    // Quitar cursor parpadeante si existe
+    termOutput.querySelector('.cursor-blink')?.parentElement?.remove();
+    const d = document.createElement('div');
+    d.className = 'out-line';
+    // Escapar HTML básico para seguridad
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    d.innerHTML = `<span class="out-prompt">›</span><span class="${cls}">${escaped}</span>`;
+    termOutput.appendChild(d);
+    termOutput.scrollTop = termOutput.scrollHeight;
 }
+
+function showTermInput() {
+    termInputArea.style.display = 'flex';
+    termInputField.value = '';
+    termInputField.focus();
+}
+
+function hideTermInput() {
+    termInputArea.style.display = 'none';
+    termInputField.value = '';
+}
+
+function setRunningState(running: boolean) {
+    isRunning = running;
+    const btnRun = document.getElementById('btnRun') as HTMLButtonElement;
+    btnRun.disabled = running;
+    btnStop.style.display = running ? 'inline-flex' : 'none';
+    if (!running) hideTermInput();
+}
+
+/* ── Enviar input al proceso RE ── */
+async function sendInput() {
+    const val = termInputField.value;
+    if (!isRunning) return;
+    appendLine(val, 'out-dim'); // Mostrar lo que escribió el usuario
+    hideTermInput();
+    try {
+        await invoke('send_re_input', { input: val });
+    } catch (e) {
+        appendLine(`[Error enviando input]: ${e}`, 'out-err');
+    }
+}
+
+termInputSend.addEventListener('click', sendInput);
+termInputField.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendInput(); }
+});
+
+/* ── runCode: ejecutar con IPC real ── */
 async function runCode() {
+    if (isRunning) return;
+
     if (termCollapsed) {
         termCollapsed = false;
         termWrap.style.height = termH + 'px';
         btnCollapseTerm.textContent = 'keyboard_arrow_down';
     }
+
+    // Limpiar terminal
+    termOutput.innerHTML = '';
+    hideTermInput();
+
     termStatus.textContent = 'Ejecutando…';
     termStatus.style.color = 'var(--primary)';
-    await addLine('[SYSTEM] Iniciando secuencia…', 'out-sys', 0);
-    await addLine('Compilando program Principal…', 'out-dim', 300);
-    await addLine('¿Tu nombre? <span style="color:var(--on-bg)">Admin_Root</span>', 'out-dim', 700);
-    await addLine('¡Hola, Admin_Root!', 'out-text', 1100);
-    await addLine('Área: 25', 'out-text', 1400);
-    await addLine('Suma: 6.28318', 'out-text', 1650);
-    await addLine('Proceso finalizado con código <span style="color:var(--tertiary)">0</span>', 'out-ok', 1900);
-    termStatus.textContent = 'Finalizado · código 0';
-    termStatus.style.color = 'var(--tertiary)';
-    showToast('Ejecución completada ✓');
+    appendLine('[SISTEMA] Iniciando intérprete RE…', 'out-sys');
+
+    setRunningState(true);
+
+    const code = editor.getValue();
+    const rePath = await getRePath();
+
+    // Limpiar listeners anteriores si los hay
+    if (unlistenOutput) { unlistenOutput(); unlistenOutput = null; }
+    if (unlistenDone) { unlistenDone(); unlistenDone = null; }
+
+    // Suscribirse a eventos de salida del proceso
+    unlistenOutput = await listen('re-output', (event: any) => {
+        const { text, is_stderr } = event.payload as { text: string; is_stderr: boolean };
+
+        // Detectar si el texto es un prompt de input() (línea que termina sin \n o es pregunta)
+        // El intérprete de RE imprime el prompt de input() directamente en stdout
+        // con el texto que el usuario pasó como argumento.
+        const cls = is_stderr ? 'out-err' : 'out-text';
+        appendLine(text, cls);
+
+        // Si es stderr con error RE conocido, colorear diferente
+        if (is_stderr && (text.includes('[RE]') || text.includes('[SyntaxError]') ||
+            text.includes('[TypeCheckError]') || text.includes('[LexerError]') ||
+            text.includes('[RE Runtime Error]'))) {
+            // ya está en out-err
+        }
+
+        // Mostrar input interactivo si la línea parece ser un prompt de input()
+        // El intérprete RE imprime el mensaje de input() antes de bloquearse en stdin.
+        // Heurística: si la línea no contiene error y no termina en puntuación de cierre,
+        // probablemente sea un prompt. Esto es una heurística básica.
+        // Mejora futura: protocolo explícito entre el intérprete y el editor.
+        if (!is_stderr && isRunning) {
+            showTermInput();
+        }
+    });
+
+    unlistenDone = await listen('re-done', (event: any) => {
+        const { exit_code } = event.payload as { exit_code: number };
+
+        // Remover listeners
+        if (unlistenOutput) { unlistenOutput(); unlistenOutput = null; }
+        if (unlistenDone) { unlistenDone(); unlistenDone = null; }
+
+        hideTermInput();
+        setRunningState(false);
+
+        if (exit_code === 0) {
+            appendLine(`Proceso finalizado con código 0`, 'out-ok');
+            termStatus.textContent = 'Finalizado · código 0';
+            termStatus.style.color = 'var(--tertiary)';
+            showToast('Ejecución completada ✓');
+        } else {
+            appendLine(`Proceso finalizado con código ${exit_code}`, 'out-err');
+            termStatus.textContent = `Error · código ${exit_code}`;
+            termStatus.style.color = '#ff6b6b';
+            showToast(`Error en ejecución (código ${exit_code})`);
+        }
+        // Añadir cursor parpadeante al final
+        const d = document.createElement('div');
+        d.className = 'out-line';
+        d.innerHTML = '<span class="out-prompt">›</span><span class="cursor-blink">_</span>';
+        termOutput.appendChild(d);
+        termOutput.scrollTop = termOutput.scrollHeight;
+    });
+
+    // Invocar el comando Rust
+    try {
+        await invoke('run_re_program', { code, rePath });
+    } catch (e: any) {
+        setRunningState(false);
+        if (unlistenOutput) { unlistenOutput(); unlistenOutput = null; }
+        if (unlistenDone) { unlistenDone(); unlistenDone = null; }
+        appendLine(`[Error IPC]: ${e}`, 'out-err');
+        appendLine('¿Está el motor RE compilado y configurada la ruta?', 'out-dim');
+        termStatus.textContent = 'Error de configuración';
+        termStatus.style.color = '#ff6b6b';
+        showToast('Error al iniciar el intérprete');
+    }
 }
-document.addEventListener('keydown', e => {
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
         runCode();
     }
 });
+
 
 /* Terminal resizer */
 const termResizer = document.getElementById('termResizer') as HTMLDivElement;
@@ -244,12 +422,111 @@ function toggleSide(open?: boolean) {
     else sideWrap.style.width = '0';
     showToast(sideOpen ? 'Panel lateral abierto' : 'Panel lateral cerrado');
 }
-/* file items */
-document.querySelectorAll('.file-item').forEach(el => el.addEventListener('click', () => {
-    document.querySelectorAll('.file-item').forEach(e => e.classList.remove('active'));
-    el.classList.add('active');
-    showToast('Archivo seleccionado: ' + el.textContent!.trim());
-}));
+/* ── Explorador de Archivos (IPC real) ── */
+
+// Directorio actual del explorador
+let explorerDir: string = 'c:\\Users\\zarat\\Logos\\RE';
+
+// Archivo actualmente abierto (ruta absoluta)
+// currentFilePath ya declarado arriba
+
+async function loadDirectory(dirPath: string) {
+    try {
+        const entries: Array<{ name: string; path: string; is_dir: boolean; size: number }> =
+            await invoke('list_directory', { path: dirPath });
+
+        explorerDir = dirPath;
+        const expFiles = document.getElementById('expFiles')!;
+        expFiles.innerHTML = '';
+
+        // Título del explorador
+        const folderName = dirPath.split(/[/\\]/).pop() || dirPath;
+        const expHdrSpan = document.querySelector('#expHdr > span:last-child');
+        if (expHdrSpan) expHdrSpan.textContent = folderName.toUpperCase();
+
+        // Botón para subir un nivel (si no estamos en la raíz)
+        const parts = dirPath.replace(/\\/g, '/').split('/').filter(Boolean);
+        if (parts.length > 1) {
+            const upEl = document.createElement('div');
+            upEl.className = 'file-item';
+            upEl.innerHTML = '<span class="file-ico">arrow_upward</span>..';
+            upEl.title = 'Subir un nivel';
+            upEl.addEventListener('click', () => {
+                const parent = parts.slice(0, -1).join('\\');
+                loadDirectory(parent.startsWith('c:') ? parent : '\\' + parent);
+            });
+            expFiles.appendChild(upEl);
+        }
+
+        // Renderizar entradas
+        for (const entry of entries) {
+            const el = document.createElement('div');
+            el.className = 'file-item';
+            const ico = entry.is_dir ? 'folder' : (entry.name.endsWith('.re') ? 'description' : 'insert_drive_file');
+            el.innerHTML = `<span class="file-ico">${ico}</span>${entry.name}`;
+            el.title = entry.path;
+
+            el.addEventListener('click', async () => {
+                document.querySelectorAll('.file-item').forEach(e => e.classList.remove('active'));
+                el.classList.add('active');
+                if (entry.is_dir) {
+                    loadDirectory(entry.path);
+                } else {
+                    await openFile(entry.path);
+                }
+            });
+            expFiles.appendChild(el);
+        }
+    } catch (e) {
+        showToast('Error al leer directorio: ' + e);
+    }
+}
+
+async function openFile(filePath: string) {
+    try {
+        const content: string = await invoke('read_file', { path: filePath });
+        setCode(content);
+        currentFilePath = filePath;
+        const fileName = filePath.split(/[/\\]/).pop() || filePath;
+        showToast('Abierto: ' + fileName);
+        // Actualizar pestaña activa si hay elementos de tab
+        const tabLabel = document.querySelector('.tab.active .tab-name');
+        if (tabLabel) tabLabel.textContent = fileName;
+    } catch (e) {
+        showToast('Error al abrir archivo: ' + e);
+    }
+}
+
+async function saveCurrentFile() {
+    if (!currentFilePath) {
+        showToast('No hay archivo abierto para guardar');
+        return;
+    }
+    try {
+        const content = editor.getValue();
+        await invoke('write_file', { path: currentFilePath, content });
+        showToast('Guardado: ' + currentFilePath.split(/[/\\]/).pop());
+    } catch (e) {
+        showToast('Error al guardar: ' + e);
+    }
+}
+
+// Ctrl+S para guardar
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveCurrentFile();
+    }
+});
+
+// Cargar directorio inicial al iniciar la app
+setTimeout(() => {
+    loadDirectory(explorerDir).catch(() => {
+        // Si falla (ej. en navegador sin Tauri), mantener los items estáticos del HTML
+    });
+}, 500);
+
+
 /* side resizer */
 const sideResizer = document.getElementById('sideResizer') as HTMLDivElement;
 let sideRes = false,
@@ -877,4 +1154,7 @@ console.log('%c🧩 Figuras %carrastrables desde la Caja de Herramientas al lien
 (window as any).toggleSection = toggleSection;
 (window as any).exportSVG = exportSVG;
 (window as any).updateLabel = updateLabel;
-(window as any).runCode = runCode; 
+(window as any).runCode = runCode;
+(window as any).loadDirectory = loadDirectory;
+(window as any).openFile = openFile;
+(window as any).saveCurrentFile = saveCurrentFile;

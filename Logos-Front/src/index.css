@@ -782,6 +782,59 @@ body {
         opacity: 0;
     }
 }
+/* Input interactivo de la terminal */
+.term-input-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-low);
+    border-top: 1px solid rgba(184, 195, 255, .1);
+    animation: fadeUp .15s ease;
+}
+.term-input-prompt {
+    color: var(--primary);
+    font-size: 13px;
+    opacity: .8;
+}
+.term-input-field {
+    flex: 1;
+    background: rgba(184, 195, 255, .06);
+    border: 1px solid rgba(184, 195, 255, .2);
+    border-radius: 4px;
+    color: var(--on-bg);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    outline: none;
+    transition: border-color .15s;
+}
+.term-input-field:focus {
+    border-color: var(--primary);
+    background: rgba(184, 195, 255, .10);
+}
+.term-input-send {
+    background: var(--primary);
+    border: none;
+    border-radius: 4px;
+    color: #1a1a2e;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    transition: opacity .15s;
+}
+.term-input-send:hover { opacity: .85; }
+/* Botón stop */
+.term-btn.stp {
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, .3);
+}
+.term-btn.stp:hover {
+    background: rgba(255, 107, 107, .15);
+}
+.out-err {
+    color: #ff6b6b;
+}
 
 /* ── BLUEPRINT CANVAS ── */
 .blueprint {

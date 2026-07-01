@@ -233,17 +233,6 @@
 
             <!-- MAIN -->
             <div class="main">
-
-                <!-- TABS CODE -->
-                <div class="tabs" id="tabsCode">
-                    <div class="tab active"><span
-                            class="tab-ico">description</span>main.re</div>
-                    <div class="tab">funciones.re</div>
-                    <div class="tab">tipos.re</div>
-                    <div class="tabs-right"><span class="tabs-badge">RE
-                            1.0.0</span></div>
-                </div>
-
                 <!-- TABS FLOW -->
                 <div class="tabs hidden" id="tabsFlow">
                     <div class="tab active"><span
@@ -252,7 +241,7 @@
                             id="flowStats">0 nodos</span></div>
                 </div>
 
-                <!-- CODE VIEW -->
+                        <!-- CODE VIEW -->
                 <div class="view" id="viewCode">
                     <div class="editor-area">
                         <div id="codeArea"></div>
@@ -271,6 +260,8 @@
                                         Ejecutar</button>
                                     <button class="term-btn clr"
                                         id="btnClear">Limpiar</button>
+                                    <button class="term-btn stp"
+                                        id="btnStop" style="display:none">■ Detener</button>
                                 </div>
                                 <button class="term-collapse"
                                     id="btnCollapseTerm">keyboard_arrow_down</button>
@@ -280,9 +271,19 @@
                                         class="out-prompt">›</span><span
                                         class="cursor-blink">_</span></div>
                             </div>
+                            <!-- Input interactivo para input() de RE -->
+                            <div class="term-input-area" id="termInputArea" style="display:none">
+                                <span class="term-input-prompt">›</span>
+                                <input type="text" id="termInputField"
+                                    class="term-input-field"
+                                    placeholder="Escribe aquí y presiona Enter…"
+                                    autocomplete="off" spellcheck="false" />
+                                <button class="term-input-send" id="termInputSend">⏎</button>
+                            </div>
                         </div>
                     </div>
                 </div>
+
 
                 <!-- FLOW VIEW -->
                 <div class="view hidden" id="viewFlow">

@@ -16,7 +16,6 @@ import {
     Method_callContext,
     ExpressionContext,
     Print_statementContext,
-    Input_statementContext,
     LiteralContext,
 } from '../Re_Parser.js';
 
@@ -307,16 +306,7 @@ export class TypeChecker
         return 'void';
     }
 
-    visitInput_statement(ctx: Input_statementContext): ReType {
-        const name = ctx.ID().text;
-        const existing = this.scope.lookup(name);
-        if (existing === undefined) {
-            const line = ctx.start?.line;
-            const col  = ctx.start?.charPositionInLine;
-            this.error(line, col, `Variable '${name}' no está declarada antes de input().`);
-        }
-        return 'string';
-    }
+
 
     // ================================================================
     // IF / WHILE / DO-WHILE / FOR
@@ -725,6 +715,11 @@ export class TypeChecker
             if (t && t.startsWith('list<'))  return t.slice(5, -1) as ReType;
             if (t && t.startsWith('array<')) return t.slice(6, -1) as ReType;
             return 'any';
+        }
+
+        // Input expression: input(...)
+        if ((ctx as any).INPUT && (ctx as any).INPUT()) {
+            return 'string';
         }
 
         // Paréntesis
