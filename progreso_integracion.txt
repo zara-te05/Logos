@@ -1,6 +1,6 @@
-ESTADO DE LA INTEGRACIÓN DE RE LANGUAGE Y LOGOS EDITOR
+﻿ESTADO DE LA INTEGRACIÓN DE RE LANGUAGE Y LOGOS EDITOR
 
-Última actualización: 2026-07-01
+Última actualización: 2026-07-08
 
 1. ESTADO ACTUAL:
 * Hito 1 (Refactorización y Estructura del Frontend): COMPLETADO.
@@ -10,78 +10,27 @@ ESTADO DE LA INTEGRACIÓN DE RE LANGUAGE Y LOGOS EDITOR
   - Tema one_dark, Space Mono, vinculación de cursor con barra de estado.
   - npm run build sin errores.
 * Hito 3 (Canal IPC en Rust para Compilación y Ejecución): COMPLETADO.
+* Hito 4 (Puente de Diagnóstico y Errores - Linting): COMPLETADO.
+* Hito 5 (Sincronización Blueprint ↔ Código RE): COMPLETADO.
 
-2. HITO 3 — CAMBIOS REALIZADOS:
+================================================================================
+2. HITO 4 — CAMBIOS REALIZADOS (resumen):
+================================================================================
+  - Debounce de 400ms en cambios de editor para llamar al comando Tauri check_re_code.
+  - Expresiones regulares para capturar SyntaxError, TypeCheckError y LexerError.
+  - Anotaciones en el gutter de Ace y marcadores con subrayado ondulado rojo (squiggles).
+  - Indicador de estado de linting animado en la barra de estado.
 
-  PASO 1 — Motor RE compilado:
-    [x] npm install y npm run build en RE/ → genera RE/dist/compiler.cli/re.js
+================================================================================
+3. HITO 5 — CAMBIOS REALIZADOS (resumen):
+================================================================================
+  - Añadidos botones "Generar código" y "Generar diagrama" en la barra de herramientas.
+  - blueprintToRE(): Compila visualmente el diagrama recorriendo el grafo con BFS y traduciendo nodos.
+  - reToBlueprint(): Parsea código RE línea a línea recreando nodos y conexiones en el canvas de flujo.
+  - Indicador SYNC en la barra de estado.
 
-  PASO 2 — Rust: src-tauri/Cargo.toml actualizado:
-    [x] tokio = { version = "1", features = ["full"] }
-    [x] tempfile = "3"
-    [x] dirs-next = "2"
-    [x] tauri-plugin-shell = "2"
-
-  PASO 3 — Rust: src-tauri/src/lib.rs implementado con comandos:
-    [x] run_re_program: guarda código en temp .re, spawnea node con el intérprete,
-        transmite stdout/stderr línea a línea como eventos re-output via tauri::Emitter,
-        acepta stdin desde canal mpsc que recibe eventos del frontend, emite re-done al terminar.
-    [x] send_re_input: envía una línea al stdin del proceso en ejecución.
-    [x] check_re_code: análisis estático con --check, retorna { success, output }.
-    [x] read_file / write_file: leer y guardar archivos del sistema.
-    [x] list_directory: lista entradas de un directorio (ordenado: dirs primero).
-    [x] get_home_dir: retorna el directorio home del usuario.
-    [x] AppState: gestiona el proceso en ejecución y el canal stdin.
-
-  PASO 4 — capabilities/default.json:
-    [x] Añadidos core:event:default, core:event:allow-listen, core:event:allow-emit.
-
-  PASO 5 — tauri.conf.json:
-    [x] Título: "Logos IDE", dimensiones: 1280x800, mínimo 900x600.
-
-  PASO 6 — Frontend src/index.ts refactorizado:
-    [x] Sección TAURI IPC: invoke y listen desde window.__TAURI__ global.
-    [x] defaultRePath configurable via localStorage['re_path'] (default: ruta conocida del proyecto).
-    [x] runCode() reemplazada con IPC real: invoke run_re_program, listen re-output/re-done.
-    [x] appendLine() helper: escapa HTML, añade líneas a la terminal.
-    [x] showTermInput() / hideTermInput(): muestra/oculta el input interactivo.
-    [x] setRunningState(): deshabilita botón Ejecutar y muestra botón Stop.
-    [x] sendInput(): toma el valor del campo, lo muestra en terminal, llama send_re_input.
-    [x] Botón Stop: envía Ctrl+C al stdin del proceso.
-    [x] loadDirectory(): lista directorio via IPC, renderiza en panel lateral.
-    [x] openFile(): lee archivo via IPC y lo carga en el editor Ace.
-    [x] saveCurrentFile(): guarda el código del editor en la ruta actual via IPC.
-    [x] Ctrl+S: llama saveCurrentFile().
-
-  PASO 7 — HTML index.html:
-    [x] termInputArea: input interactivo con campo de texto y botón ⏎.
-    [x] btnStop: botón "■ Detener" (oculto por defecto, visible al ejecutar).
-
-  PASO 8 — CSS src/index.css:
-    [x] .term-input-area, .term-input-field, .term-input-send: estilos del input interactivo.
-    [x] .term-btn.stp: estilo del botón stop (rojo).
-    [x] .out-err: color rojo para líneas de error en terminal.
-
-  VERIFICACIÓN:
-    [x] npm run build del frontend → ✅ sin errores de TypeScript.
-    [x] cargo build del backend → ✅ compila (error de "acceso denegado" fue por exe en uso,
-        no error de código. Warnings de imports no usados corregidos).
-    [ ] npm run tauri dev → pendiente prueba manual del usuario.
-
-3. NOTAS IMPORTANTES PARA LA SIGUIENTE SESIÓN:
-  - La ruta al motor RE está hardcodeada como 'c:\Users\zarat\Logos\RE' por defecto.
-    El usuario puede sobreescribirla ejecutando en la consola del navegador:
-    localStorage.setItem('re_path', 'C:\\ruta\\a\\RE')
-  - El input interactivo aparece SIEMPRE que el programa emite alguna línea en stdout
-    mientras está en ejecución (heurística básica). Hito 4 puede mejorar esto.
-  - tauri-plugin-shell fue añadido al Cargo.toml pero NO se usó en lib.rs (se usa
-    tokio::process::Command directamente). Se puede quitar si no se va a usar para otra cosa.
-  - La lógica de input() del intérprete RE usa fs.readSync() en Node.js, que bloquea
-    esperando stdin. El piped stdin de Tokio debería permitir enviarle datos correctamente.
-
-4. HITOS PENDIENTES:
-  * Hito 4: Puente de Diagnóstico y Errores (Linting)
-    - Debounce de 400ms en cambios del editor → llamar check_re_code.
-    - Parsear salida de errores con regex → Línea/Columna.
-    - Mostrar anotaciones en el gutter de Ace Editor.
-  * Hito 5: Sincronización entre Diagrama de Flujo (Blueprint) y Código
+================================================================================
+4. VERIFICACIÓN:
+================================================================================
+  - npm run build del frontend → ✅ sin errores.
+  - cargo build del backend → ✅ compila sin errores.
