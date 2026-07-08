@@ -309,6 +309,19 @@
                                 onclick="clearCanvas()">delete_sweep</button>
                             <button class="bp-tb-btn" title="Auto-ordenar"
                                 onclick="autoLayout()">auto_fix_high</button>
+                            <div class="bp-tb-sep"></div>
+                            <button class="bp-tb-btn bp-sync-btn" id="btnBpToCode"
+                                title="Compilar diagrama → código RE"
+                                onclick="blueprintToRE()">
+                                <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span>
+                                Generar código
+                            </button>
+                            <button class="bp-tb-btn bp-sync-btn" id="btnCodeToBp"
+                                title="Parsear código RE → diagrama"
+                                onclick="reToBlueprint()">
+                                <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+                                Generar diagrama
+                            </button>
                         </div>
                         <!-- canvas for connections -->
                         <canvas id="bpCanvas"></canvas>
@@ -345,7 +358,7 @@
                             id="cursorCol">1</span></span>
                     <span class="status-sep">|</span>
                     <span class="lint-status lint-idle" id="lintStatus">— Linting</span>
-                    <div class="status-right"><div
+                    <div class="status-right" id="syncStatus"><div
                             class="status-dot"></div><span>SYNC</span></div>
                 </div>
             </div><!-- /main -->

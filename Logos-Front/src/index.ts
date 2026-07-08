@@ -1,5 +1,4 @@
 import "./index.css";
-
 declare const ace: any;
 
 /* ════════════════════════════════
@@ -1312,6 +1311,326 @@ function showToast(msg: string) {
     toastT = setTimeout(() => toastEl.classList.remove('show'), 2600) as unknown as number;
 }
 
+/* ════════════════════════════════
+   HITO 5: SINCRONIZACIÓN BLUEPRINT ↔ CÓDIGO RE
+   ════════════════════════════════ */
+/** Badge SYNC en la barra de estado inferior */
+const syncStatusEl = document.getElementById('syncStatus') as HTMLDivElement | null;
+/**
+ * Actualiza el indicador SYNC de la barra de estado.
+ * @param state 'idle' | 'ok' | 'error'
+ * @param msg   Texto alternativo opcional
+ */
+function setSyncStatus(state: 'idle' | 'ok' | 'error', msg?: string) {
+    if (!syncStatusEl) return;
+    const dot = syncStatusEl.querySelector('.status-dot') as HTMLElement | null;
+    const lbl = syncStatusEl.querySelector('span:last-child') as HTMLElement | null;
+    if (lbl) lbl.textContent = msg ?? (state === 'ok' ? 'SYNC ✓' : state === 'error' ? 'SYNC ✗' : 'SYNC');
+    if (dot) {
+        dot.style.background =
+            state === 'ok'    ? '#a8e6cf' :
+            state === 'error' ? '#ff6b6b' : '';
+    }
+}
+/* ─────────────────────────────────────────────────────────
+   A) blueprintToRE() — Compilador Visual → Código RE
+   Recorre el grafo de nodos en orden topológico (BFS desde
+   el primer nodo oval con label que contenga "INICIO" o el
+   primer oval del array) y traduce cada nodo a código RE.
+   ───────────────────────────────────────────────────────── */
+function blueprintToRE(): void {
+    if (nodes.length === 0) {
+        showToast('El lienzo está vacío. Añade nodos primero.');
+        return;
+    }
+    // ── 1. Encontrar nodo raíz ──────────────────────────────
+    const startNode =
+        nodes.find(n => n.type === 'oval' && /inicio/i.test(n.label)) ??
+        nodes.find(n => n.type === 'oval') ??
+        nodes[0];
+    // ── 2. BFS topológico ────────────────────────────────────
+    // Construir mapa de adyacencia: nodeId → lista ordenada de hijos
+    // (s=main, e=else branch)
+    const adjMap = new Map<number, Array<{ id: number; fromPort: string; toPort: string }>>();
+    nodes.forEach(n => adjMap.set(n.id, []));
+    connections.forEach(c => {
+        const list = adjMap.get(c.from);
+        if (list) list.push({ id: c.to, fromPort: c.fromPort, toPort: c.toPort });
+    });
+    const visited = new Set<number>();
+    const order: NodeDef[] = [];
+    const queue: number[] = [startNode.id];
+    visited.add(startNode.id);
+    while (queue.length > 0) {
+        const curr = queue.shift()!;
+        const nd = nodes.find(n => n.id === curr);
+        if (nd) order.push(nd);
+        const children = adjMap.get(curr) ?? [];
+        // ordenar: puerto 's' (sur / main) primero, luego 'e'/'w'
+        children.sort((a, b) => {
+            const rank = (p: string) => p === 's' ? 0 : p === 'n' ? 1 : p === 'e' ? 2 : 3;
+            return rank(a.fromPort) - rank(b.fromPort);
+        });
+        for (const child of children) {
+            if (!visited.has(child.id)) {
+                visited.add(child.id);
+                queue.push(child.id);
+            }
+        }
+    }
+    // Añadir nodos no alcanzados (sin conexión al root)
+    nodes.forEach(n => { if (!visited.has(n.id)) order.push(n); });
+    // ── 3. Traducción de nodos a código RE ───────────────────
+    const lines: string[] = [];
+    let indent = 0;
+    let programOpened = false;
+    let ifDepth = 0;  // rastrear depth para cerrar if correctamente
+    const pad = () => '  '.repeat(indent);
+    for (let i = 0; i < order.length; i++) {
+        const nd = order[i];
+        const label = nd.label.trim();
+        switch (nd.type) {
+            /* ── OVAL: INICIO o FIN ── */
+            case 'oval':
+            case 'term': {
+                if (/fin/i.test(label) || /end/i.test(label)) {
+                    // Cerrar bloques if abiertos
+                    while (ifDepth > 0) { indent--; lines.push(pad() + '}'); ifDepth--; }
+                    if (programOpened) { indent = 0; lines.push('}'); }
+                    programOpened = false;
+                } else {
+                    // INICIO → encabezado program
+                    const progName = label.replace(/[^a-zA-Z0-9_]/g, '') || 'Principal';
+                    lines.push(`program ${progName} {`);
+                    indent = 1;
+                    programOpened = true;
+                }
+                break;
+            }
+            /* ── RECT: PROCESO (declaración / asignación) ── */
+            case 'rect': {
+                // Si el label tiene el patrón "tipo var = expr" → declaración
+                const declMatch = label.match(/^(int|double|string|bool)\s+(\w+)\s*=\s*(.+)$/i);
+                if (declMatch) {
+                    lines.push(`${pad()}${declMatch[1]} ${declMatch[2]} = ${declMatch[3]};`);
+                } else {
+                    // Intentar detectar asignación simple "var = expr"
+                    const assignMatch = label.match(/^(\w+)\s*=\s*(.+)$/);
+                    if (assignMatch) {
+                        lines.push(`${pad()}${assignMatch[1]} = ${assignMatch[2]};`);
+                    } else {
+                        // Emitir como comentario con la etiqueta
+                        lines.push(`${pad()}// ${label}`);
+                    }
+                }
+                break;
+            }
+            /* ── DIAMOND: DECISIÓN (if) ── */
+            case 'diamond': {
+                // Limpiar signos de interrogación del label para usarlo como condición
+                const cond = label.replace(/[¿?]/g, '').trim() || 'condicion';
+                lines.push(`${pad()}if (${cond}) {`);
+                indent++;
+                ifDepth++;
+                // Buscar hijo por puerto 's' (then) vs 'e'/'w' (else)
+                // La generación de else la haremos después de insertar los children del then
+                // Insertar placeholder para else si existe una rama alternativa
+                const children = adjMap.get(nd.id) ?? [];
+                const hasElse = children.some(c => c.fromPort === 'e' || c.fromPort === 'w');
+                if (hasElse) {
+                    // Marcar cierre de if con else en el próximo nodo
+                    // Buscamos el primer nodo por puerto 'e'/'w' y lo anotamos
+                    const elseChild = children.find(c => c.fromPort === 'e' || c.fromPort === 'w');
+                    const elseNode = elseChild ? nodes.find(n => n.id === elseChild.id) : null;
+                    if (elseNode) {
+                        // Añadir cierre de then + else a continuación
+                        // Para simplicidad, emitimos else { ... } usando el label del nodo else
+                        lines.push(`${pad()}// rama then`);
+                        indent--;
+                        ifDepth--;
+                        lines.push(`${pad()}} else {`);
+                        indent++;
+                        lines.push(`${pad()}// ${elseNode.label}`);
+                        indent--;
+                        lines.push(`${pad()}}`);
+                    } else {
+                        indent--;
+                        ifDepth--;
+                        lines.push(`${pad()}}`);
+                    }
+                }
+                break;
+            }
+            /* ── PARA / IO: ENTRADA / SALIDA ── */
+            case 'para':
+            case 'io': {
+                const isInput = /^(leer|read|input|entrada|dato)/i.test(label);
+                if (isInput) {
+                    // Extraer nombre de variable del label si posible: "LEER nombre" → nombre
+                    const varName = label.replace(/^(leer|read|input|entrada|dato)\s*/i, '').replace(/[^a-zA-Z0-9_]/g, '') || 'dato';
+                    lines.push(`${pad()}string ${varName} = input("${label}: ");`);
+                } else {
+                    // Salida: print
+                    const content = label.replace(/^(print|salida|output|mostrar)\s*/i, '').trim();
+                    if (content) {
+                        lines.push(`${pad()}print("${content}");`);
+                    } else {
+                        lines.push(`${pad()}print("${label}");`);
+                    }
+                }
+                break;
+            }
+            default:
+                lines.push(`${pad()}// [${nd.type}] ${label}`);
+        }
+    }
+    // Cerrar bloque program si quedó abierto
+    while (ifDepth > 0) { indent--; lines.push(pad() + '}'); ifDepth--; }
+    if (programOpened) lines.push('}');
+    const code = lines.join('\n');
+    // ── 4. Volcar en el editor y cambiar a vista CODE ────────
+    setView('code');
+    setCode(code);
+    setSyncStatus('ok', 'BP→RE ✓');
+    showToast('Código generado desde el diagrama ✓');
+    // Lanzar lint tras 600ms para que Tauri procese el cambio
+    if (lintDebounce !== null) clearTimeout(lintDebounce);
+    lintDebounce = setTimeout(runLint, 600);
+}
+/* ─────────────────────────────────────────────────────────
+   B) reToBlueprint() — Parser RE → Blueprint
+   Parsea el código del editor línea a línea usando regex y
+   reconstruye los nodos en el canvas. Los nodos se encadenan
+   secuencialmente; la rama else del if genera un nodo
+   diamond con dos salidas.
+   ───────────────────────────────────────────────────────── */
+function reToBlueprint(): void {
+    const code = editor.getValue();
+    if (!code.trim()) {
+        showToast('El editor está vacío. Escribe código RE primero.');
+        return;
+    }
+    // Limpiar canvas actual
+    if (nodes.length > 0 && !confirm('¿Reemplazar el diagrama actual con el código del editor?')) return;
+    saveHistory();
+    nodes = [];
+    connections = [];
+    nodeIdCounter = 0;
+    selectedNode = null;
+    bpNodes.innerHTML = '';
+    drawConnections();
+    // ── Regex de detección ────────────────────────────────────
+    const reProgram   = /^\s*program\s+(\w+)\s*\{/;
+    const reCloseBrace= /^\s*\}/;
+    const reIf        = /^\s*if\s*\((.+?)\)\s*\{/;
+    const reElse      = /^\s*\}\s*else\s*\{/;
+    const rePrint     = /^\s*print\s*\((.+)\)\s*;/;
+    const reInput     = /^\s*(\w+)\s+(\w+)\s*=\s*input\s*\((.+?)\)\s*;/;
+    const reDecl      = /^\s*(int|double|string|bool)\s+(\w+)\s*=\s*(.+?)\s*;/;
+    const reAssign    = /^\s*(\w+)\s*=\s*(.+?)\s*;/;
+    const reComment   = /^\s*\/\/(.+)/;
+    const COLORS: Record<string, string> = {
+        oval:    '#b8c3ff',
+        rect:    '#a8e6cf',
+        diamond: '#ffe082',
+        para:    '#ffb59b',
+    };
+    // Layout automático: posicionamos en cascada vertical
+    let layoutY = 80;
+    const CX = 380;  // centro X
+    const GAP = 130;
+    /** Crea un nodo y devuelve su id, con posición automática */
+    function addNode(type: string, label: string, color?: string): NodeDef {
+        const def = NODE_DEFAULTS[type] || NODE_DEFAULTS.rect;
+        const nd: NodeDef = {
+            id: ++nodeIdCounter,
+            type, label,
+            x: CX - def.w / 2,
+            y: layoutY,
+            w: def.w,
+            h: def.h,
+            color: color ?? COLORS[type] ?? '#b8c3ff',
+        };
+        nodes.push(nd);
+        layoutY += def.h + GAP - 70;
+        return nd;
+    }
+    /** Crea una conexión entre dos nodos */
+    function addConn(fromId: number, fromPort: string, toId: number, toPort: string) {
+        connections.push({ from: fromId, fromPort, to: toId, toPort, id: ++nodeIdCounter });
+    }
+    // ── Parsear código línea a línea ─────────────────────────
+    const lines = code.split('\n');
+    let prevNodeId: number | null = null;
+    let inElse = false;
+    let elseAnchorId: number | null = null; // diamond que abre el if
+    for (const rawLine of lines) {
+        const line = rawLine;
+        let nd: NodeDef | null = null;
+        if (reProgram.test(line)) {
+            const m = line.match(reProgram)!;
+            nd = addNode('oval', m[1], '#b8c3ff');
+        } else if (reCloseBrace.test(line) && !reElse.test(line)) {
+            // Cierre de bloque: puede ser fin de program o de if
+            const isLastBrace = lines.slice(lines.indexOf(line) + 1).every((l: string) => !l.trim() || l.trim() === '}');
+            if (isLastBrace || lines.filter((l: string) => l.trim() === '}').length <= 1) {
+                nd = addNode('oval', 'FIN', '#ffb4ab');
+            }
+            inElse = false;
+            elseAnchorId = null;
+        } else if (reIf.test(line)) {
+            const m = line.match(reIf)!;
+            const cond = m[1].trim();
+            nd = addNode('diamond', `¿${cond}?`, COLORS.diamond);
+            elseAnchorId = nd.id;
+        } else if (reElse.test(line)) {
+            inElse = true;
+            // No crear nodo nuevo; las instrucciones dentro del else
+            // se conectarán por el puerto 'e' del diamond
+            continue;
+        } else if (rePrint.test(line)) {
+            const m = line.match(rePrint)!;
+            const arg = m[1].trim().replace(/^["']|["']$/g, '');
+            nd = addNode('para', `PRINT ${arg}`, COLORS.para);
+        } else if (reInput.test(line)) {
+            const m = line.match(reInput)!;
+            nd = addNode('para', `LEER ${m[2]}`, COLORS.para);
+        } else if (reDecl.test(line)) {
+            const m = line.match(reDecl)!;
+            nd = addNode('rect', `${m[1]} ${m[2]} = ${m[3]}`, COLORS.rect);
+        } else if (reAssign.test(line)) {
+            const m = line.match(reAssign)!;
+            nd = addNode('rect', `${m[1]} = ${m[2]}`, COLORS.rect);
+        } else if (reComment.test(line)) {
+            const m = line.match(reComment)!;
+            const txt = m[1].trim();
+            if (txt && !/rama then|rama else/i.test(txt)) {
+                nd = addNode('rect', txt, '#c3c7cd');
+            }
+        }
+        // Conectar con el nodo anterior
+        if (nd) {
+            if (prevNodeId !== null) {
+                if (inElse && elseAnchorId !== null) {
+                    addConn(elseAnchorId, 'e', nd.id, 'w');
+                    inElse = false;
+                    elseAnchorId = null;
+                } else {
+                    addConn(prevNodeId, 's', nd.id, 'n');
+                }
+            }
+            prevNodeId = nd.id;
+        }
+    }
+    // ── Renderizar resultado ─────────────────────────────────
+    nodes.forEach(n => renderNode(n));
+    drawConnections();
+    updateStats();
+    setView('flow');
+    setSyncStatus('ok', 'RE→BP ✓');
+    showToast('Diagrama generado desde el código ✓');
+}
+
 /* ── INIT ── */
 setTimeout(() => {
     resizeBpCanvas();
@@ -1341,3 +1660,7 @@ console.log('%c🧩 Figuras %carrastrables desde la Caja de Herramientas al lien
 (window as any).loadDirectory = loadDirectory;
 (window as any).openFile = openFile;
 (window as any).saveCurrentFile = saveCurrentFile;
+
+// Hito 5
+(window as any).blueprintToRE = blueprintToRE;
+(window as any).reToBlueprint = reToBlueprint;

@@ -1291,3 +1291,60 @@ body.move-cursor * {
     margin-right: 3px;
     color: #ff6b6b;
 }
+
+/* ════════════════════════════════
+   HITO 5 — BOTONES DE SINCRONIZACIÓN BLUEPRINT ↔ RE
+   ════════════════════════════════ */
+/* Botón especial de sincronización en el toolbar del Blueprint */
+.bp-sync-btn {
+    /* override: no es icono solo, es texto + ícono */
+    font-family: 'Hanken Grotesk', 'Space Mono', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid rgba(184, 195, 255, 0.18) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--primary) !important;
+    background: rgba(184, 195, 255, 0.06) !important;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s;
+    white-space: nowrap;
+}
+.bp-sync-btn:hover {
+    background: rgba(184, 195, 255, 0.14) !important;
+    border-color: rgba(184, 195, 255, 0.4) !important;
+    box-shadow: 0 0 12px rgba(184, 195, 255, 0.15);
+    transform: translateY(-1px);
+}
+.bp-sync-btn:active {
+    transform: translateY(0);
+    background: rgba(184, 195, 255, 0.22) !important;
+}
+/* El segundo botón (Generar diagrama) usa color terciario */
+#btnCodeToBp {
+    color: var(--tertiary) !important;
+    border-color: rgba(255, 181, 155, 0.18) !important;
+    background: rgba(255, 181, 155, 0.06) !important;
+}
+#btnCodeToBp:hover {
+    background: rgba(255, 181, 155, 0.14) !important;
+    border-color: rgba(255, 181, 155, 0.4) !important;
+    box-shadow: 0 0 12px rgba(255, 181, 155, 0.15);
+}
+#btnCodeToBp:active {
+    background: rgba(255, 181, 155, 0.22) !important;
+}
+/* Badge SYNC en la barra de estado — animación al sincronizar */
+#syncStatus {
+    transition: color 0.3s, background 0.3s;
+}
+#syncStatus.syncing .status-dot {
+    animation: sync-pulse 0.8s ease-in-out 3;
+}
+@keyframes sync-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50%       { opacity: 1;   transform: scale(1.4); }
+}
