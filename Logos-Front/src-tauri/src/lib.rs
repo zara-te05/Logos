@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
 
@@ -111,14 +111,52 @@ async fn run_re_program(
     let app_done = app.clone();
 
     // 4. Tarea: leer stdout y emitir eventos
+    //    Usamos lectura por chunks en lugar de líneas para capturar
+    //    prompts de input() que no terminan en \n (ej. "¿Tu nombre? ").
     let stdout_task = tokio::spawn(async move {
-        let reader = BufReader::new(child_stdout);
-        let mut lines = reader.lines();
-        while let Ok(Some(line)) = lines.next_line().await {
-            let _ = app_out.emit("re-output", ReOutput {
-                text: line,
-                is_stderr: false,
-            });
+        let mut reader = BufReader::new(child_stdout);
+        let mut buf = [0u8; 256];
+        let mut line_buf = String::new();
+
+        loop {
+            match reader.read(&mut buf).await {
+                Ok(0) => {
+                    // EOF: emitir lo que quede en el buffer sin \n
+                    if !line_buf.is_empty() {
+                        let _ = app_out.emit("re-output", ReOutput {
+                            text: line_buf.clone(),
+                            is_stderr: false,
+                        });
+                        line_buf.clear();
+                    }
+                    break;
+                }
+                Ok(n) => {
+                    let chunk = String::from_utf8_lossy(&buf[..n]);
+                    line_buf.push_str(&chunk);
+
+                    // Emitir líneas completas (terminadas en \n)
+                    while let Some(pos) = line_buf.find('\n') {
+                        let line = line_buf[..pos].trim_end_matches('\r').to_string();
+                        let _ = app_out.emit("re-output", ReOutput {
+                            text: line,
+                            is_stderr: false,
+                        });
+                        line_buf = line_buf[pos + 1..].to_string();
+                    }
+
+                    // Si queda texto SIN \n (prompt de input()), emitirlo de inmediato
+                    // para que el frontend lo muestre y abra el campo de escritura.
+                    if !line_buf.is_empty() {
+                        let _ = app_out.emit("re-output", ReOutput {
+                            text: line_buf.clone(),
+                            is_stderr: false,
+                        });
+                        line_buf.clear();
+                    }
+                }
+                Err(_) => break,
+            }
         }
     });
 

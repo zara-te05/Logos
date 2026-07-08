@@ -282,26 +282,25 @@ async function runCode() {
     unlistenOutput = await listen('re-output', (event: any) => {
         const { text, is_stderr } = event.payload as { text: string; is_stderr: boolean };
 
-        // Detectar si el texto es un prompt de input() (línea que termina sin \n o es pregunta)
-        // El intérprete de RE imprime el prompt de input() directamente en stdout
-        // con el texto que el usuario pasó como argumento.
         const cls = is_stderr ? 'out-err' : 'out-text';
         appendLine(text, cls);
 
-        // Si es stderr con error RE conocido, colorear diferente
-        if (is_stderr && (text.includes('[RE]') || text.includes('[SyntaxError]') ||
-            text.includes('[TypeCheckError]') || text.includes('[LexerError]') ||
-            text.includes('[RE Runtime Error]'))) {
-            // ya está en out-err
-        }
-
-        // Mostrar input interactivo si la línea parece ser un prompt de input()
-        // El intérprete RE imprime el mensaje de input() antes de bloquearse en stdin.
-        // Heurística: si la línea no contiene error y no termina en puntuación de cierre,
-        // probablemente sea un prompt. Esto es una heurística básica.
-        // Mejora futura: protocolo explícito entre el intérprete y el editor.
+        // Detectar si la línea es un prompt de input() que espera escritura del usuario.
+        // Gracias a la lectura por chunks del backend Rust, el prompt llega como texto
+        // parcial sin \n. Heurística: stdout que termina en '?', ':', '>', '…' o espacio
+        // — los patrones más habituales en mensajes de prompt interactivo.
         if (!is_stderr && isRunning) {
-            showTermInput();
+            const trimmed = text.trimEnd();
+            const looksLikePrompt =
+                trimmed.endsWith('?') ||
+                trimmed.endsWith(':') ||
+                trimmed.endsWith('>') ||
+                trimmed.endsWith('…') ||
+                text.endsWith(' ');   // "¿Tu nombre? " termina en espacio
+
+            if (looksLikePrompt) {
+                showTermInput();
+            }
         }
     });
 
@@ -525,6 +524,190 @@ setTimeout(() => {
         // Si falla (ej. en navegador sin Tauri), mantener los items estáticos del HTML
     });
 }, 500);
+
+/* ════════════════════════════════
+   HITO 4: DIAGNÓSTICO Y LINTING
+   ════════════════════════════════ */
+
+/** Temporizador del debounce de linting */
+let lintDebounce: ReturnType<typeof setTimeout> | null = null;
+
+/** Marcadores de subrayado activos en Ace (para poder limpiarlos) */
+const activeMarkerIds: number[] = [];
+
+/** Indicador de estado de linting en la barra inferior */
+const lintStatusEl = document.getElementById('lintStatus') as HTMLSpanElement | null;
+
+/**
+ * Actualiza el indicador visual de linting en la barra de estado.
+ * @param state 'ok' | 'error' | 'checking' | 'idle'
+ * @param count Número de errores (sólo relevante en state='error')
+ */
+function setLintStatus(state: 'ok' | 'error' | 'checking' | 'idle', count = 0) {
+    if (!lintStatusEl) return;
+    switch (state) {
+        case 'checking':
+            lintStatusEl.textContent = '⟳ Analizando…';
+            lintStatusEl.className = 'lint-status lint-checking';
+            break;
+        case 'ok':
+            lintStatusEl.textContent = '✓ Sin errores';
+            lintStatusEl.className = 'lint-status lint-ok';
+            break;
+        case 'error':
+            lintStatusEl.textContent = `✗ ${count} error${count !== 1 ? 'es' : ''}`;
+            lintStatusEl.className = 'lint-status lint-error';
+            break;
+        case 'idle':
+        default:
+            lintStatusEl.textContent = '— Linting';
+            lintStatusEl.className = 'lint-status lint-idle';
+            break;
+    }
+}
+
+/**
+ * Parsea la salida de texto de check_re_code y extrae
+ * los errores con línea, columna y mensaje.
+ *
+ * Formatos soportados del compilador RE:
+ *   [SyntaxError] Línea L:C mensaje
+ *   [TypeCheckError] en Línea L, Columna C: mensaje
+ *   [LexerError] Línea L:C mensaje
+ */
+interface LintError {
+    row: number;    // 0-indexed para Ace
+    col: number;    // 0-indexed para Ace
+    message: string;
+    type: 'error' | 'warning';
+}
+
+function parseCheckOutput(output: string): LintError[] {
+    const errors: LintError[] = [];
+
+    // Patrón 1: [SyntaxError] / [LexerError] → "Línea L:C ..."
+    const patternShort = /\[(SyntaxError|LexerError)\][^\n]*[Ll]ínea\s+(\d+):(\d+)\s*(.*)/g;
+    let m: RegExpExecArray | null;
+    while ((m = patternShort.exec(output)) !== null) {
+        const row = Math.max(0, parseInt(m[2], 10) - 1);
+        const col = Math.max(0, parseInt(m[3], 10) - 1);
+        const msg = `[${m[1]}] ${m[4].trim()}`;
+        errors.push({ row, col, message: msg, type: 'error' });
+    }
+
+    // Patrón 2: [TypeCheckError] → "en Línea L, Columna C: ..."
+    const patternTypeCheck = /\[TypeCheckError\][^\n]*[Ll]ínea\s+(\d+),\s*[Cc]olumna\s+(\d+):\s*(.*)/g;
+    while ((m = patternTypeCheck.exec(output)) !== null) {
+        const row = Math.max(0, parseInt(m[1], 10) - 1);
+        const col = Math.max(0, parseInt(m[2], 10) - 1);
+        const msg = `[TypeCheckError] ${m[3].trim()}`;
+        errors.push({ row, col, message: msg, type: 'error' });
+    }
+
+    // Patrón 3 (fallback genérico): "line L" o "línea L" sin columna
+    const patternGeneric = /\[(SyntaxError|LexerError|TypeCheckError|Error)\][^\n]*(?:[Ll]ine|[Ll]ínea)\s+(\d+)(?:[^\d]|$)/g;
+    while ((m = patternGeneric.exec(output)) !== null) {
+        const row = Math.max(0, parseInt(m[2], 10) - 1);
+        // Evitar duplicar si ya fue capturado por patrones específicos
+        const alreadyCaptured = errors.some(e => e.row === row);
+        if (!alreadyCaptured) {
+            errors.push({ row, col: 0, message: m[0].trim(), type: 'error' });
+        }
+    }
+
+    return errors;
+}
+
+/**
+ * Limpia todas las anotaciones y marcadores de subrayado del editor.
+ */
+function clearLintMarkers() {
+    editor.getSession().clearAnnotations();
+    // Limpiar marcadores de subrayado anteriores
+    while (activeMarkerIds.length > 0) {
+        const id = activeMarkerIds.pop()!;
+        editor.getSession().removeMarker(id);
+    }
+}
+
+/**
+ * Aplica las anotaciones y subrayados rojos en el editor Ace
+ * a partir de la lista de errores parseados.
+ */
+function applyLintErrors(errors: LintError[]) {
+    clearLintMarkers();
+
+    if (errors.length === 0) {
+        setLintStatus('ok');
+        return;
+    }
+
+    // Anotaciones en el gutter (barra lateral)
+    const annotations = errors.map(e => ({
+        row: e.row,
+        column: e.col,
+        text: e.message,
+        type: e.type   // 'error' → ícono rojo en gutter
+    }));
+    editor.getSession().setAnnotations(annotations);
+
+    // Marcadores de subrayado (squiggly red underline)
+    const Range = ace.require('ace/range').Range;
+    errors.forEach(e => {
+        const lineText: string = editor.getSession().getLine(e.row) || '';
+        const startCol = e.col;
+        // Subrayar desde la columna del error hasta el final del token/línea
+        const endCol = lineText.length > startCol ? lineText.length : startCol + 1;
+        const range = new Range(e.row, startCol, e.row, endCol);
+        const markerId = editor.getSession().addMarker(range, 'lint-error-marker', 'text', false);
+        activeMarkerIds.push(markerId);
+    });
+
+    setLintStatus('error', errors.length);
+}
+
+/**
+ * Ejecuta el análisis estático del código actual (check_re_code)
+ * y aplica los resultados en el editor.
+ * Sólo se lanza si Tauri IPC está disponible.
+ */
+async function runLint() {
+    const code = editor.getValue();
+    const rePath = await getRePath();
+
+    setLintStatus('checking');
+
+    try {
+        const result: { success: boolean; output: string } =
+            await invoke('check_re_code', { code, rePath });
+
+        if (result.success) {
+            clearLintMarkers();
+            setLintStatus('ok');
+        } else {
+            const errors = parseCheckOutput(result.output);
+            applyLintErrors(errors);
+        }
+    } catch (_e) {
+        // Si IPC falla (ej. navegador sin Tauri), no hacer nada
+        setLintStatus('idle');
+    }
+}
+
+/**
+ * Hook en cambios del editor: debounce de 400ms antes de llamar a runLint.
+ * Se dispara tanto en cambios de contenido como al abrir un nuevo archivo.
+ */
+editor.session.on('change', () => {
+    if (lintDebounce !== null) clearTimeout(lintDebounce);
+    lintDebounce = setTimeout(runLint, 400);
+});
+
+// Linting inicial al cargar la app (con un pequeño delay para que Tauri esté listo)
+setTimeout(() => {
+    setLintStatus('idle');
+    runLint();
+}, 800);
 
 
 /* side resizer */

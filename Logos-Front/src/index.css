@@ -1227,3 +1227,67 @@ body.move-cursor * {
 .side-resizer:hover .side-resizer-tip {
     opacity: 1;
 }
+
+/* ════════════════════════════════
+   HITO 4: LINTING STYLES
+   ════════════════════════════════ */
+
+/* Subrayado rojo ondulado para errores en el editor Ace */
+.lint-error-marker {
+    position: absolute;
+    border-bottom: 2px wavy #ff6b6b;
+    z-index: 20;
+}
+
+/* Indicador de estado de linting en la barra de estado */
+.lint-status {
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 1px 7px;
+    border-radius: 3px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.lint-idle {
+    color: var(--outline);
+    background: transparent;
+}
+
+.lint-checking {
+    color: #b8c3ff;
+    background: rgba(184, 195, 255, 0.08);
+    animation: lint-pulse 1s ease-in-out infinite alternate;
+}
+
+.lint-ok {
+    color: #a8e6cf;
+    background: rgba(168, 230, 207, 0.08);
+}
+
+.lint-error {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.12);
+    font-weight: 700;
+}
+
+@keyframes lint-pulse {
+    from { opacity: 0.5; }
+    to   { opacity: 1.0; }
+}
+
+/* Gutter annotations (íconos de error en el margen del editor) */
+.ace_error {
+    background-image: none !important;
+}
+.ace_gutter-cell.ace_error {
+    background-color: rgba(255, 107, 107, 0.18);
+    color: #ff6b6b;
+}
+.ace_gutter-cell.ace_error::before {
+    content: '✗';
+    font-size: 10px;
+    margin-right: 3px;
+    color: #ff6b6b;
+}
