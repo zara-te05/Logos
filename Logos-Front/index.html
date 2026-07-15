@@ -27,218 +27,22 @@
                     <span class="act-lbl">FLOW</span>
                 </button>
                 <div class="spacer"></div>
-                <div class="sep"></div>
-                <button class="act-btn" id="btnSide" title="Panel lateral">
-                    <span class="act-ico">dock_to_right</span>
-                </button>
             </div>
 
-            <!-- SIDE PANEL (contenido dinámico) -->
-            <div class="side-wrap" id="sideWrap">
-                <div class="side-panel">
-                    <div class="side-header">
-                        <span class="side-title" id="sideTitle">
-                            <span class="ico">folder_open</span> EXPLORADOR
-                        </span>
-                        <button class="side-close" id="btnCloseSide"
-                            title="Cerrar panel">close</button>
-                    </div>
 
-                    <!-- EXPLORER (solo en CODE) -->
-                    <div id="explorerContent" class="explorer-content">
-                        <div class="exp-section-hdr" id="expHdr">
-                            <span class="exp-arrow"
-                                id="expArrow">keyboard_arrow_down</span>
-                            <span>LOGOS-PROJECT</span>
-                        </div>
-                        <div class="exp-files" id="expFiles">
-                            <div class="file-item active"><span
-                                    class="file-ico">description</span>main.re</div>
-                            <div class="file-item"><span
-                                    class="file-ico">description</span>funciones.re</div>
-                            <div class="file-item"><span
-                                    class="file-ico">description</span>tipos.re</div>
-                            <div class="file-item"><span
-                                    class="file-ico">description</span>colecciones.re</div>
-                        </div>
-                    </div>
-
-                    <!-- TOOLBOX (solo en FLOW) -->
-                    <div id="toolboxContent" class="toolbox-content"
-                        style="display:none">
-
-                        <!-- HERRAMIENTA ACTIVA -->
-                        <div class="tool-section">
-                            <div class="tool-section-hdr"
-                                onclick="toggleSection(this)">
-                                <span
-                                    class="exp-arrow">keyboard_arrow_down</span>
-                                HERRAMIENTAS
-                            </div>
-                            <div class="tool-section-body">
-                                <div class="tool-row">
-                                    <button class="tool-btn active"
-                                        id="toolSelect"
-                                        onclick="setTool('select')">
-                                        <span
-                                            class="ico">arrow_selector_tool</span>
-                                        Seleccionar
-                                    </button>
-                                    <button class="tool-btn" id="toolConnect"
-                                        onclick="setTool('connect')">
-                                        <span class="ico">call_split</span>
-                                        Conectar
-                                    </button>
-                                    <button class="tool-btn" id="toolDelete"
-                                        onclick="setTool('delete')">
-                                        <span class="ico">delete</span> Eliminar
-                                    </button>
-                                    <button class="tool-btn" id="toolPan"
-                                        onclick="setTool('pan')">
-                                        <span class="ico">pan_tool</span>
-                                        Desplazar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- FORMAS -->
-                        <div class="tool-section">
-                            <div class="tool-section-hdr"
-                                onclick="toggleSection(this)">
-                                <span
-                                    class="exp-arrow">keyboard_arrow_down</span>
-                                FIGURAS
-                            </div>
-                            <div class="tool-section-body">
-                                <div class="tool-grid">
-                                    <div class="shape-card" draggable="true"
-                                        data-type="oval" title="Inicio / Fin">
-                                        <div class="shape-preview"><div
-                                                class="prev-oval"
-                                                style="color:var(--primary)"></div></div>
-                                        INICIO/FIN
-                                    </div>
-                                    <div class="shape-card" draggable="true"
-                                        data-type="rect" title="Proceso">
-                                        <div class="shape-preview"><div
-                                                class="prev-rect"
-                                                style="color:var(--on-bg-dim)"></div></div>
-                                        PROCESO
-                                    </div>
-                                    <div class="shape-card" draggable="true"
-                                        data-type="diamond" title="Decisión">
-                                        <div class="shape-preview"><div
-                                                class="prev-diamond"
-                                                style="color:var(--on-bg-dim)"></div></div>
-                                        DECISIÓN
-                                    </div>
-                                    <div class="shape-card" draggable="true"
-                                        data-type="para" title="Entrada/Salida">
-                                        <div class="shape-preview"
-                                            style="position:relative"><div
-                                                class="prev-para"
-                                                style="color:var(--on-bg-dim)"></div><div
-                                                class="prev-para-border"
-                                                style="color:var(--on-bg-dim);position:absolute;top:0"></div></div>
-                                        E/S
-                                    </div>
-                                    <div class="shape-card" draggable="true"
-                                        data-type="io" title="Dato">
-                                        <div class="shape-preview"><div
-                                                class="prev-oval"
-                                                style="color:var(--on-bg-dim);border-radius:50px"></div></div>
-                                        DATO
-                                    </div>
-                                    <div class="shape-card" draggable="true"
-                                        data-type="term" title="Terminal">
-                                        <div class="shape-preview"><div
-                                                class="prev-oval"
-                                                style="color:var(--error)"></div></div>
-                                        TERMINAL
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- COLORES -->
-                        <div class="tool-section">
-                            <div class="tool-section-hdr"
-                                onclick="toggleSection(this)">
-                                <span
-                                    class="exp-arrow">keyboard_arrow_down</span>
-                                COLOR DE NODO
-                            </div>
-                            <div class="tool-section-body">
-                                <div class="color-row" id="colorSwatches">
-                                    <div class="swatch active"
-                                        data-color="#b8c3ff"
-                                        style="background:#b8c3ff"
-                                        title="Azul"></div>
-                                    <div class="swatch" data-color="#ffb59b"
-                                        style="background:#ffb59b"
-                                        title="Naranja"></div>
-                                    <div class="swatch" data-color="#a8e6cf"
-                                        style="background:#a8e6cf"
-                                        title="Verde"></div>
-                                    <div class="swatch" data-color="#ffb4ab"
-                                        style="background:#ffb4ab"
-                                        title="Rojo"></div>
-                                    <div class="swatch" data-color="#dde1ff"
-                                        style="background:#dde1ff"
-                                        title="Blanco"></div>
-                                    <div class="swatch" data-color="#c3c7cd"
-                                        style="background:#c3c7cd"
-                                        title="Gris"></div>
-                                    <div class="swatch" data-color="#ffe082"
-                                        style="background:#ffe082"
-                                        title="Amarillo"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ACCIONES -->
-                        <div class="tool-section">
-                            <div class="tool-section-hdr"
-                                onclick="toggleSection(this)">
-                                <span
-                                    class="exp-arrow">keyboard_arrow_down</span>
-                                ACCIONES
-                            </div>
-                            <div class="tool-section-body">
-                                <div class="tool-row">
-                                    <button class="tool-btn"
-                                        onclick="clearCanvas()"><span
-                                            class="ico">delete_sweep</span>
-                                        Limpiar lienzo</button>
-                                    <button class="tool-btn"
-                                        onclick="autoLayout()"><span
-                                            class="ico">auto_fix_high</span>
-                                        Auto-ordenar</button>
-                                    <button class="tool-btn"
-                                        onclick="exportSVG()"><span
-                                            class="ico">download</span> Exportar
-                                        SVG</button>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div><!-- /toolboxContent -->
-                </div><!-- /side-panel -->
-                <div class="side-resizer" id="sideResizer"
-                    title="Arrastra para redimensionar el panel lateral">
-                    <span class="side-resizer-tip">drag_indicator</span>
-                </div>
-            </div><!-- /side-wrap -->
 
             <!-- MAIN -->
             <div class="main">
                 <!-- TABS FLOW -->
                 <div class="tabs hidden" id="tabsFlow">
                     <div class="tab active"><span
-                            class="tab-ico">account_tree</span>flujo_principal.flw</div>
-                    <div class="tabs-right"><span class="tabs-badge"
-                            id="flowStats">0 nodos</span></div>
+                            class="tab-ico">account_tree</span>diagrama_flujo.svg</div>
+                    <div class="tabs-right">
+                        <span class="tabs-badge" id="flowStats">Listo</span>
+                        <button class="tab-action-btn" id="btnRefreshFlow" title="Regenerar diagrama desde el código">
+                            <span class="material-symbols-outlined" style="font-size:14px">refresh</span>
+                        </button>
+                    </div>
                 </div>
 
                         <!-- CODE VIEW -->
@@ -262,6 +66,11 @@
                                         id="btnClear">Limpiar</button>
                                     <button class="term-btn stp"
                                         id="btnStop" style="display:none">■ Detener</button>
+                                    <button class="term-btn sav" id="btnSaveAs"
+                                        title="Guardar archivo en una ruta específica">
+                                        <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">save_as</span>
+                                        Guardar como…
+                                    </button>
                                 </div>
                                 <button class="term-collapse"
                                     id="btnCollapseTerm">keyboard_arrow_down</button>
@@ -285,65 +94,125 @@
                 </div>
 
 
-                <!-- FLOW VIEW -->
+                <!-- FLOW VIEW — Diagrama visual de solo lectura -->
                 <div class="view hidden" id="viewFlow">
+                    <!-- PANEL LATERAL FLOW: leyenda + zoom + acciones -->
+                    <div id="flowLegendPanel" class="flow-legend-panel">
+                        <div class="flow-legend-header">
+                            <span class="ico">account_tree</span>
+                            DIAGRAMA
+                        </div>
+
+                        <!-- LEYENDA -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr" onclick="toggleSection(this)">
+                                <span class="exp-arrow">keyboard_arrow_down</span>
+                                LEYENDA
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="flow-legend-items">
+                                    <div class="legend-item">
+                                        <div class="legend-shape legend-oval"></div>
+                                        <span>program / FIN</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-shape legend-rect"></div>
+                                        <span>Declaración / Asignación</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-shape legend-diamond"></div>
+                                        <span>Condición if</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-shape legend-para"></div>
+                                        <span>print / input</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-shape legend-loop"></div>
+                                        <span>Bucle while / for</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ZOOM -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr" onclick="toggleSection(this)">
+                                <span class="exp-arrow">keyboard_arrow_down</span>
+                                VISTA
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="tool-row">
+                                    <button class="tool-btn" id="btnZoomOut">
+                                        <span class="ico">remove</span> Alejar
+                                    </button>
+                                    <button class="tool-btn" id="btnZoomIn">
+                                        <span class="ico">add</span> Acercar
+                                    </button>
+                                    <button class="tool-btn" id="btnZoomReset">
+                                        <span class="ico">crop_free</span> Reset
+                                    </button>
+                                </div>
+                                <div class="flow-zoom-label-row">
+                                    <span class="flow-zoom-lbl" id="zoomLabel">100%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES -->
+                        <div class="tool-section">
+                            <div class="tool-section-hdr" onclick="toggleSection(this)">
+                                <span class="exp-arrow">keyboard_arrow_down</span>
+                                ACCIONES
+                            </div>
+                            <div class="tool-section-body">
+                                <div class="tool-row">
+                                    <button class="tool-btn" id="btnLegendRefresh">
+                                        <span class="ico">refresh</span> Actualizar
+                                    </button>
+                                    <button class="tool-btn" id="btnExportSVG">
+                                        <span class="ico">download</span> Exportar SVG
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- INFO NODOS -->
+                        <div class="flow-info-box">
+                            <span class="flow-info-item">
+                                <span class="ico" style="font-size:13px">hub</span>
+                                <span id="statNodes">0</span> nodos
+                            </span>
+                            <span class="flow-info-item">
+                                <span class="ico" style="font-size:13px">arrow_forward</span>
+                                <span id="statLinks">0</span> enlaces
+                            </span>
+                        </div>
+                    </div><!-- /flow-legend-panel -->
+
+                    <!-- CANVAS VISUAL -->
                     <div class="blueprint" id="blueprint">
-                        <!-- toolbar -->
+                        <!-- Toolbar minimalista solo con zoom y pan -->
                         <div class="bp-toolbar">
-                            <button class="bp-tb-btn active" id="tbSelect"
-                                title="Seleccionar (V)"
-                                onclick="setTool('select')">arrow_selector_tool</button>
-                            <button class="bp-tb-btn" id="tbConnect"
-                                title="Conectar (C)"
-                                onclick="setTool('connect')">call_split</button>
-                            <button class="bp-tb-btn" id="tbDelete"
-                                title="Eliminar (D)"
-                                onclick="setTool('delete')">delete</button>
-                            <button class="bp-tb-btn" id="tbPan"
-                                title="Desplazar (P)"
-                                onclick="setTool('pan')">pan_tool</button>
-                            <div class="bp-tb-sep"></div>
-                            <button class="bp-tb-btn" title="Deshacer (Ctrl+Z)"
-                                onclick="undo()">undo</button>
-                            <button class="bp-tb-btn" title="Limpiar"
-                                onclick="clearCanvas()">delete_sweep</button>
-                            <button class="bp-tb-btn" title="Auto-ordenar"
-                                onclick="autoLayout()">auto_fix_high</button>
-                            <div class="bp-tb-sep"></div>
-                            <button class="bp-tb-btn bp-sync-btn" id="btnBpToCode"
-                                title="Compilar diagrama → código RE"
-                                onclick="blueprintToRE()">
-                                <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span>
-                                Generar código
+                            <button class="bp-tb-btn active" id="tbPan" title="Mover vista (P)">
+                                <span class="material-symbols-outlined" style="font-size:15px">pan_tool</span>
                             </button>
-                            <button class="bp-tb-btn bp-sync-btn" id="btnCodeToBp"
-                                title="Parsear código RE → diagrama"
-                                onclick="reToBlueprint()">
-                                <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
-                                Generar diagrama
+                            <div class="bp-tb-sep"></div>
+                            <button class="bp-tb-btn" id="btnToolbarRefresh" title="Actualizar diagrama">
+                                <span class="material-symbols-outlined" style="font-size:15px">refresh</span>
+                                Actualizar
                             </button>
+                            <div class="bp-tb-sep"></div>
+                            <div class="bp-flow-label">SOLO LECTURA · refleja el código actual</div>
                         </div>
-                        <!-- canvas for connections -->
+                        <!-- canvas para conexiones -->
                         <canvas id="bpCanvas"></canvas>
-                        <!-- node container -->
+                        <!-- contenedor de nodos -->
                         <div class="bp-nodes" id="bpNodes"></div>
-                        <!-- zoom -->
-                        <div class="bp-zoom">
-                            <button class="bp-zoom-btn"
-                                onclick="changeZoom(-.1)">remove</button>
-                            <span class="bp-zoom-label"
-                                id="zoomLabel">100%</span>
-                            <button class="bp-zoom-btn"
-                                onclick="changeZoom(.1)">add</button>
-                            <button class="bp-zoom-btn" onclick="changeZoom(0)"
-                                title="Resetear">crop_free</button>
-                        </div>
                         <!-- stats -->
                         <div class="bp-stats">
-                            <div class="bp-stat"><span>NODOS</span><span
-                                    id="statNodes">0</span></div>
-                            <div class="bp-stat"><span>LINKS</span><span
-                                    id="statLinks">0</span></div>
+                            <div class="bp-stat"><span>NODOS</span><span id="statNodesFlow">0</span></div>
+                            <div class="bp-stat"><span>ENLACES</span><span id="statLinksFlow">0</span></div>
                         </div>
                     </div>
                 </div>
@@ -364,10 +233,53 @@
             </div><!-- /main -->
         </div><!-- /root -->
 
+        <!-- MODAL GUARDAR COMO -->
+        <div class="modal-overlay" id="saveAsOverlay" style="display:none">
+            <div class="modal-box modal-box-wide" id="saveAsModal" role="dialog" aria-modal="true" aria-labelledby="saveAsTitle">
+                <div class="modal-header">
+                    <span class="modal-ico material-symbols-outlined">save_as</span>
+                    <span class="modal-title" id="saveAsTitle">Guardar como…</span>
+                    <button class="modal-close" id="btnSaveAsClose" title="Cerrar">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Breadcrumb de ruta actual -->
+                    <div class="sa-breadcrumb" id="saBreadcrumb">
+                        <span class="material-symbols-outlined" style="font-size:14px">folder_open</span>
+                        <span id="saBreadcrumbText">Cargando…</span>
+                    </div>
+                    <!-- Lista de archivos y carpetas -->
+                    <div class="sa-browser" id="saBrowser">
+                        <!-- Poblado dinámicamente -->
+                    </div>
+                    <!-- Nombre del archivo -->
+                    <div class="sa-filename-row">
+                        <label class="modal-label" for="saFilename">Nombre del archivo</label>
+                        <div class="modal-input-row">
+                            <input type="text" id="saFilename" class="modal-input sa-filename-input"
+                                placeholder="mi_programa.re"
+                                spellcheck="false" autocomplete="off" />
+                            <span class="sa-ext">.re</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="sa-current-path" id="saCurrentPath"></span>
+                    <button class="modal-btn modal-btn-secondary" id="btnSaveAsCancel">Cancelar</button>
+                    <button class="modal-btn modal-btn-primary" id="btnSaveAsConfirm">
+                        <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">save</span>
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="toast" id="toast"></div>
         <div class="drag-ghost" id="dragGhost" style="display:none"></div>
 
         <script src="/ace/ace.js"></script>
+        <script src="/ace/ext-language_tools.js"></script>
         <script type="module" src="/src/index.ts"></script>
     </body>
 </html>

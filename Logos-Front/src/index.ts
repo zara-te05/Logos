@@ -5,18 +5,7 @@ declare const ace: any;
    CODE EDITOR
    ════════════════════════════════ */
 const INIT_CODE = `program Principal {
-  // Entrada de datos
-  string nombre = input("¿Tu nombre? ");
-  print("¡Hola, " + nombre + "!");
-
-  // Calcular área de triángulo
-  int area = calcularArea(10, 5);
-  print("Área: " + to_str(area));
-
-  // Pi aproximado
-  double pi = 3.14159;
-  double suma = pi + pi;
-  print("Suma: " + to_str(suma));
+  
 }`;
 
 // Configurar base path para Ace Editor
@@ -86,6 +75,9 @@ ace.define("ace/mode/re", ["require", "exports", "module", "ace/lib/oop", "ace/m
     exports.Mode = Mode;
 });
 
+// Habilitar extensión de autocompletado ANTES de ace.edit()
+ace.require("ace/ext/language_tools");
+
 // Inicializar el editor Ace sobre #codeArea
 const editor = ace.edit("codeArea");
 editor.setTheme("ace/theme/one_dark");
@@ -97,8 +89,70 @@ editor.setOptions({
     showPrintMargin: false,
     displayIndentGuides: true,
     tabSize: 2,
-    useSoftTabs: true
+    useSoftTabs: true,
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableSnippets: true
 });
+
+/* ════════════════════════════════
+   AUTOCOMPLETADO DE PALABRAS RESERVADAS DE RE
+   ════════════════════════════════ */
+
+const RE_COMPLETIONS = [
+    // ── Estructuras de control ──
+    { caption: "program",  value: "program Main {\n  \n}",                    meta: "RE", score: 1000 },
+    { caption: "if",       value: "if () {\n  \n}",                           meta: "RE", score: 1000 },
+    { caption: "if/else",  value: "if () {\n  \n} else {\n  \n}",            meta: "RE", score: 1000 },
+    { caption: "while",    value: "while () {\n  \n}",                        meta: "RE", score: 1000 },
+    { caption: "do-while", value: "do {\n  \n} while ();",                    meta: "RE", score: 1000 },
+    { caption: "for",      value: "for i in 0..10 {\n  \n}",                  meta: "RE", score: 1000 },
+    // ── I/O ──
+    { caption: "print",    value: "print();",                                  meta: "RE", score: 1000 },
+    { caption: "input",    value: "string nombre = input(\"Prompt: \");",      meta: "RE", score: 1000 },
+    { caption: "return",   value: "return ",                                   meta: "RE", score: 1000 },
+    // ── Built-ins de conversión ──
+    { caption: "to_str",    value: "to_str()",    meta: "RE", score: 1000 },
+    { caption: "to_int",    value: "to_int()",    meta: "RE", score: 1000 },
+    { caption: "to_double", value: "to_double()", meta: "RE", score: 1000 },
+    // ── Built-ins de tamaño ──
+    { caption: "len",  value: "len()",  meta: "RE", score: 1000 },
+    { caption: "size", value: "size()", meta: "RE", score: 1000 },
+    // ── Tipos primitivos ──
+    { caption: "int",    value: "int",    meta: "RE", score: 900 },
+    { caption: "double", value: "double", meta: "RE", score: 900 },
+    { caption: "string", value: "string", meta: "RE", score: 900 },
+    { caption: "bool",   value: "bool",   meta: "RE", score: 900 },
+    { caption: "var",    value: "var",    meta: "RE", score: 900 },
+    // ── Colecciones ──
+    { caption: "list",  value: "list<int>",  meta: "RE", score: 900 },
+    { caption: "array", value: "array<int>", meta: "RE", score: 900 },
+    { caption: "queue", value: "queue<int>", meta: "RE", score: 900 },
+    { caption: "stack", value: "stack<int>", meta: "RE", score: 900 },
+    // ── Control de flujo (keywords simples) ──
+    { caption: "else",   value: "else",   meta: "RE", score: 900 },
+    { caption: "do",     value: "do",     meta: "RE", score: 900 },
+    { caption: "in",     value: "in",     meta: "RE", score: 900 },
+    // ── Literales y operadores lógicos ──
+    { caption: "true",  value: "true",  meta: "RE", score: 900 },
+    { caption: "false", value: "false", meta: "RE", score: 900 },
+    { caption: "and",   value: "and",   meta: "RE", score: 900 },
+    { caption: "or",    value: "or",    meta: "RE", score: 900 },
+    { caption: "not",   value: "not",   meta: "RE", score: 900 },
+];
+
+const reCompleter = {
+    getCompletions: (_editor: any, session: any, pos: any, _prefix: string, callback: Function) => {
+        const token = session.getTokenAt(pos.row, pos.column);
+        // No completar dentro de comentarios ni de strings
+        if (token && (token.type === 'comment' || token.type === 'string')) {
+            return callback(null, []);
+        }
+        callback(null, RE_COMPLETIONS);
+    }
+};
+
+editor.completers = [reCompleter];
 
 function setCode(code: string) {
     editor.setValue(code, -1);
@@ -383,12 +437,9 @@ document.addEventListener('mouseup', () => {
 });
 
 /* ════════════════════════════════
-   SIDE PANEL
+   TOOLBOX SECTIONS (FLOW)
    ════════════════════════════════ */
-const sideWrap = document.getElementById('sideWrap') as HTMLDivElement;
-let sideOpen = true,
-    sideW = 240,
-    currentView = 'code';
+let currentView = 'code';
 
 function toggleSection(hdr: HTMLElement) {
     const body = hdr.nextElementSibling as HTMLDivElement;
@@ -400,26 +451,6 @@ function toggleSection(hdr: HTMLElement) {
 // init open
 document.querySelectorAll('.tool-section-body,.exp-files').forEach(b => (b as HTMLElement).style.maxHeight = '400px');
 
-function setSidePanelMode(mode: string) {
-    document.getElementById('explorerContent')!.style.display = mode === 'code' ? 'flex' : 'none';
-    document.getElementById('toolboxContent')!.style.display = mode === 'flow' ? 'flex' : 'none';
-    const titleEl = document.getElementById('sideTitle')!;
-    if (mode === 'code') {
-        titleEl.innerHTML = '<span class="ico">folder_open</span> EXPLORADOR';
-    } else {
-        titleEl.innerHTML = '<span class="ico">construction</span> HERRAMIENTAS';
-    }
-}
-document.getElementById('btnCloseSide')!.addEventListener('click', () => toggleSide(false));
-document.getElementById('btnSide')!.addEventListener('click', () => toggleSide());
-
-function toggleSide(open?: boolean) {
-    sideOpen = open !== undefined ? open : !sideOpen;
-    sideWrap.classList.toggle('collapsed', !sideOpen);
-    if (sideOpen) sideWrap.style.width = sideW + 'px';
-    else sideWrap.style.width = '0';
-    showToast(sideOpen ? 'Panel lateral abierto' : 'Panel lateral cerrado');
-}
 /* ── Explorador de Archivos (IPC real) ── */
 
 // Directorio actual del explorador
@@ -497,7 +528,8 @@ async function openFile(filePath: string) {
 
 async function saveCurrentFile() {
     if (!currentFilePath) {
-        showToast('No hay archivo abierto para guardar');
+        // Redirigir a "Guardar como..." si es un archivo nuevo sin ruta
+        openSaveAsModal();
         return;
     }
     try {
@@ -514,6 +546,38 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         saveCurrentFile();
+    }
+});
+
+async function saveFlowDiagram() {
+    try {
+        const data = JSON.stringify({ nodes, connections }, null, 2);
+        // Intentar guardar vía Tauri IPC si está disponible
+        const fileName = 'flujo_principal.flw';
+        try {
+            await invoke('write_file', { path: fileName, content: data });
+            showToast('Diagrama guardado: ' + fileName);
+        } catch (_ipcErr) {
+            // Fallback: descarga como archivo en navegador
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Diagrama exportado como ' + fileName);
+        }
+    } catch (e) {
+        showToast('Error al guardar diagrama: ' + e);
+    }
+}
+
+// Ctrl+Shift+S para guardar diagrama
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        if (currentView === 'flow') saveFlowDiagram();
     }
 });
 
@@ -709,32 +773,6 @@ setTimeout(() => {
 }, 800);
 
 
-/* side resizer */
-const sideResizer = document.getElementById('sideResizer') as HTMLDivElement;
-let sideRes = false,
-    sideResX = 0,
-    sideResW = 240;
-sideResizer.addEventListener('mousedown', e => {
-    sideRes = true;
-    sideResX = e.clientX;
-    sideResW = sideW;
-    sideResizer.classList.add('dragging');
-    document.body.classList.add('col-resize');
-    e.preventDefault();
-});
-document.addEventListener('mousemove', e => {
-    if (!sideRes) return;
-    sideW = Math.max(160, Math.min(480, sideResW + (e.clientX - sideResX)));
-    sideWrap.style.width = sideW + 'px';
-});
-document.addEventListener('mouseup', () => {
-    if (sideRes) {
-        sideRes = false;
-        sideResizer.classList.remove('dragging');
-        document.body.classList.remove('col-resize');
-        showToast('Panel: ' + sideW + 'px');
-    }
-});
 
 /* ════════════════════════════════
    VIEW SWITCH
@@ -743,8 +781,7 @@ const btnCode = document.getElementById('btnCode') as HTMLButtonElement,
     btnFlow = document.getElementById('btnFlow') as HTMLButtonElement;
 const viewCode = document.getElementById('viewCode') as HTMLDivElement,
     viewFlow = document.getElementById('viewFlow') as HTMLDivElement;
-const tabsCode = document.getElementById('tabsCode') as HTMLDivElement,
-    tabsFlow = document.getElementById('tabsFlow') as HTMLDivElement;
+const tabsFlow = document.getElementById('tabsFlow') as HTMLDivElement;
 const statusMode = document.getElementById('statusMode') as HTMLSpanElement;
 
 function setView(v: string) {
@@ -752,13 +789,17 @@ function setView(v: string) {
     const isCode = v === 'code';
     viewCode.classList.toggle('hidden', !isCode);
     viewFlow.classList.toggle('hidden', isCode);
-    tabsCode.classList.toggle('hidden', !isCode);
     tabsFlow.classList.toggle('hidden', isCode);
     btnCode.classList.toggle('active', isCode);
     btnFlow.classList.toggle('active', !isCode);
-    statusMode.textContent = isCode ? 'CODE_EDITOR' : 'BLUEPRINT_CANVAS';
-    setSidePanelMode(v);
-    if (!isCode) resizeBpCanvas();
+    statusMode.textContent = isCode ? 'CODE_EDITOR' : 'FLOW_VIEWER';
+    if (!isCode) {
+        // Retraso de 50ms para permitir que el navegador recalcule las dimensiones del layout antes de redimensionar el canvas
+        setTimeout(() => {
+            resizeBpCanvas();
+            syncFlowFromCode();
+        }, 50);
+    }
 }
 btnCode.addEventListener('click', () => setView('code'));
 btnFlow.addEventListener('click', () => setView('flow'));
@@ -819,12 +860,6 @@ function setTool(t: string) {
         document.getElementById('tb' + cap(n))?.classList.toggle('active', n === t);
         document.getElementById('tool' + cap(n))?.classList.toggle('active', n === t);
     });
-    if (t === 'connect') document.body.classList.add('crosshair');
-    else document.body.classList.remove('crosshair');
-    if (t === 'pan') document.body.classList.add('move-cursor');
-    else document.body.classList.remove('move-cursor');
-    const names: Record<string, string> = { select: 'Seleccionar', connect: 'Conectar', delete: 'Eliminar', pan: 'Desplazar' };
-    showToast('Herramienta: ' + (names[t] || t));
 }
 
 function cap(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -884,88 +919,46 @@ function renderNode(node: NodeDef) {
     if (!el) {
         el = document.createElement('div');
         el.id = 'fnode-' + node.id;
-        el.className = `fnode fnode-${node.type}`;
+        el.className = `fnode fnode-${node.type} fnode-readonly`;
         bpNodes.appendChild(el);
         attachNodeEvents(el, node);
     }
 
-    // Position
+    // Posición y tamaño calculado
     el.style.left = node.x + 'px';
-    el.style.top = node.y + 'px';
-    el.style.width = node.w + 'px';
+    el.style.top  = node.y + 'px';
+    el.style.width  = node.w + 'px';
     el.style.height = node.h + 'px';
 
-    // inner content
+    // inner content — solo lectura, tipografía limpia
     let inner = '';
     if (node.type === 'diamond') {
+        // El rombo escala con el contenedor; el label está centrado encima
         inner = `<div class="fnode-inner">
-      <div class="diamond-rot" style="border-color:${node.color}40"></div>
-      <div class="diamond-label" style="color:${node.color};font-size:9px">${node.label}</div>
+      <div class="diamond-rot" style="border-color:${node.color}60"></div>
+      <div class="diamond-label" style="color:${node.color}">${node.label}</div>
     </div>`;
     } else {
-        inner = `<div class="fnode-inner" style="border-color:${node.color}50;color:${node.color}cc">
-      <input class="node-label-edit" value="${node.label}" style="color:${node.color}cc"
-        id="label-edit-${node.id}"/>
+        inner = `<div class="fnode-inner" style="border-color:${node.color}50;color:${node.color}dd">
+      <span class="node-label-ro">${node.label}</span>
     </div>`;
     }
-    // ports
-    const ports = ['n', 's', 'e', 'w'].map(p =>
-        `<div class="port port-${p}" data-port="${p}" data-id="${node.id}"></div>`).join('');
-    el.innerHTML = inner + ports;
+    el.innerHTML = inner;
 
-    // Attach listener for inputs
-    const inputEl = el.querySelector(`#label-edit-${node.id}`) as HTMLInputElement;
-    if (inputEl) {
-        inputEl.addEventListener('dblclick', () => inputEl.focus());
-        inputEl.addEventListener('blur', () => updateLabel(node.id, inputEl.value));
-        inputEl.addEventListener('change', () => updateLabel(node.id, inputEl.value));
-        inputEl.addEventListener('mousedown', (e) => e.stopPropagation());
-    }
-
-    el.querySelectorAll('.port').forEach(p => {
-        (p as HTMLElement).addEventListener('mousedown', e => {
-            e.stopPropagation();
-            startConnect(node, (p as HTMLElement).dataset.port!, e);
-        });
-    });
     if (node.id === selectedNode) el.classList.add('selected');
 }
 
-function attachNodeEvents(el: HTMLElement, node: NodeDef) {
-    let dragging = false,
-        ox = 0,
-        oy = 0,
-        startX = 0,
-        startY = 0;
+function attachNodeEvents(el: HTMLElement, _node: NodeDef) {
+    // Vista visual de solo lectura: solo pan disponible
     el.addEventListener('mousedown', e => {
         const target = e.target as HTMLElement;
         if (target.classList.contains('port')) return;
-        if (currentTool === 'delete') { deleteNode(node.id); return; }
-        if (currentTool === 'connect') return;
-        if (currentTool === 'select' || currentTool === 'pan') {
-            selectNode(node.id);
-            dragging = true;
-            ox = e.clientX - node.x;
-            oy = e.clientY - node.y;
-            startX = node.x;
-            startY = node.y;
-            document.body.classList.add('move-cursor');
+        // Solo permitir pan en el flow visual
+        if (currentTool === 'pan') {
+            isPanning = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            document.body.classList.add('bp-panning');
             e.stopPropagation();
-        }
-    });
-    document.addEventListener('mousemove', ev => {
-        if (!dragging) return;
-        node.x = ev.clientX - ox;
-        node.y = ev.clientY - oy;
-        el.style.left = node.x + 'px';
-        el.style.top = node.y + 'px';
-        drawConnections();
-    });
-    document.addEventListener('mouseup', () => {
-        if (dragging) {
-            dragging = false;
-            if (currentTool !== 'pan') document.body.classList.remove('move-cursor');
-            if (node.x !== startX || node.y !== startY) saveHistory();
         }
     });
 }
@@ -993,6 +986,8 @@ function selectNode(id: number | null) {
     }
 }
 
+/* ── CONNECTIONS (reservado para legado/reToBlueprint) ── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function deleteNode(id: number) {
     saveHistory();
     const nd = nodes.find(n => n.id === id);
@@ -1005,7 +1000,7 @@ function deleteNode(id: number) {
     if (nd) showToast('Nodo eliminado: ' + nd.label);
 }
 
-/* ── CONNECTIONS ── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function startConnect(node: NodeDef, port: string, e: MouseEvent) {
     if (currentTool !== 'connect') return;
     connectFrom = { id: node.id, port };
@@ -1063,6 +1058,12 @@ function getPortPos(node: NodeDef, port: string) {
 
 function drawConnections() {
     bpCtx.clearRect(0, 0, bpCanvas.width, bpCanvas.height);
+    bpCtx.save();
+    
+    // Aplicar la misma transformación del zoom y pan al contexto del canvas
+    bpCtx.translate(panX, panY);
+    bpCtx.scale(zoom, zoom);
+
     bpCtx.strokeStyle = 'rgba(184,195,255,0.7)';
     bpCtx.lineWidth = 1.5;
     bpCtx.setLineDash([]);
@@ -1104,11 +1105,16 @@ function drawConnections() {
             bpCtx.setLineDash([5, 4]);
             bpCtx.beginPath();
             bpCtx.moveTo(p1.x, p1.y);
-            bpCtx.lineTo(mousePos.x, mousePos.y);
+            // Convertir coordenadas del mouse de viewport a modelo
+            const modelMouseX = (mousePos.x - panX) / zoom;
+            const modelMouseY = (mousePos.y - panY) / zoom;
+            bpCtx.lineTo(modelMouseX, modelMouseY);
             bpCtx.stroke();
             bpCtx.setLineDash([]);
         }
     }
+    
+    bpCtx.restore();
 }
 
 let mousePos: { x: number; y: number } | null = null;
@@ -1123,6 +1129,7 @@ blueprint.addEventListener('mousemove', e => {
         panStart = { x: e.clientX, y: e.clientY };
         bpNodes.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
         bpNodes.style.transformOrigin = '0 0';
+        drawConnections(); // Redibujar el canvas con la nueva posición
     }
 });
 
@@ -1132,13 +1139,13 @@ blueprint.addEventListener('mousedown', e => {
         if (currentTool === 'pan') {
             isPanning = true;
             panStart = { x: e.clientX, y: e.clientY };
-            document.body.classList.add('move-cursor');
+            document.body.classList.add('bp-panning');
         }
     }
 });
 blueprint.addEventListener('mouseup', () => {
     isPanning = false;
-    if (currentTool !== 'pan') document.body.classList.remove('move-cursor');
+    document.body.classList.remove('bp-panning');
 });
 blueprint.addEventListener('click', e => {
     const target = e.target as HTMLElement;
@@ -1190,6 +1197,7 @@ function changeZoom(delta: number) {
     bpNodes.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
     bpNodes.style.transformOrigin = '0 0';
     document.getElementById('zoomLabel')!.textContent = Math.round(zoom * 100) + '%';
+    drawConnections(); // Redibujar con la nueva escala
     if (delta === 0) showToast('Zoom reseteado');
 }
 blueprint.addEventListener('wheel', e => {
@@ -1246,57 +1254,43 @@ function autoLayout() {
     showToast('Nodos reordenados');
 }
 
+// exportSVG: mantenida como alias de exportFlowSVG para compatibilidad con HTML inline
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function exportSVG() {
-    showToast('Función de exportación SVG en desarrollo');
+    exportFlowSVG();
 }
 
 function updateStats() {
-    document.getElementById('statNodes')!.textContent = String(nodes.length);
-    document.getElementById('statLinks')!.textContent = String(connections.length);
-    document.getElementById('flowStats')!.textContent =
-        `${nodes.length} nodo${nodes.length !== 1 ? 's' : ''} · ${connections.length} enlace${connections.length !== 1 ? 's' : ''}`;
+    const nStr = String(nodes.length);
+    const lStr = String(connections.length);
+    // Actualizar los IDs del panel de leyenda del flow visual
+    const elN = document.getElementById('statNodes');
+    const elL = document.getElementById('statLinks');
+    const elNF = document.getElementById('statNodesFlow');
+    const elLF = document.getElementById('statLinksFlow');
+    if (elN) elN.textContent = nStr;
+    if (elL) elL.textContent = lStr;
+    if (elNF) elNF.textContent = nStr;
+    if (elLF) elLF.textContent = lStr;
+    const statsEl = document.getElementById('flowStats');
+    if (statsEl) statsEl.textContent = `${nodes.length} nodo${nodes.length !== 1 ? 's' : ''}`;
 }
 
-/* ── DEMO NODES ── */
+/* ── DEMO NODES: sin uso en modo visual ── */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function addDemoNodes() {
-    const n1 = createNode('oval', 400, 80);
-    n1.label = 'INICIO';
-    const n2 = createNode('para', 400, 190);
-    n2.label = 'LEER NOMBRE';
-    const n3 = createNode('diamond', 400, 320);
-    n3.label = '¿VACÍO?';
-    const n4 = createNode('rect', 400, 480);
-    n4.label = 'PRINT SALUDO';
-    const n5 = createNode('oval', 400, 590);
-    n5.label = 'FIN';
-    n5.color = '#ffb4ab';
-    connections.push({ from: n1.id, fromPort: 's', to: n2.id, toPort: 'n', id: ++nodeIdCounter });
-    connections.push({ from: n2.id, fromPort: 's', to: n3.id, toPort: 'n', id: ++nodeIdCounter });
-    connections.push({ from: n3.id, fromPort: 's', to: n4.id, toPort: 'n', id: ++nodeIdCounter });
-    connections.push({ from: n4.id, fromPort: 's', to: n5.id, toPort: 'n', id: ++nodeIdCounter });
-    nodes.forEach(n => renderNode(n));
-    nodes.find(n => n.id === n5.id)!.color = '#ffb4ab';
-    renderNode(nodes.find(n => n.id === n5.id)!);
-    drawConnections();
-    updateStats();
+    // No se pre-cargan nodos de demo: el diagrama se genera desde el código al abrir FLOW
 }
 
 /* ── KEYBOARD ── */
 document.addEventListener('keydown', e => {
     if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-    if (e.key === 'v' || e.key === 'V') setTool('select');
-    if (e.key === 'c' || e.key === 'C') setTool('connect');
-    if (e.key === 'd' || e.key === 'D') setTool('delete');
     if (e.key === 'p' || e.key === 'P') setTool('pan');
-    if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        undo();
-    }
-    if (e.key === 'Delete' && selectedNode !== null) { deleteNode(selectedNode); }
     if (e.key === 'Escape') {
         selectNode(null);
         connectFrom = null;
-        setTool('select');
+        setTool('pan');
+        closeSaveAsModal();
     }
 });
 
@@ -1542,17 +1536,24 @@ function reToBlueprint(): void {
     /** Crea un nodo y devuelve su id, con posición automática */
     function addNode(type: string, label: string, color?: string): NodeDef {
         const def = NODE_DEFAULTS[type] || NODE_DEFAULTS.rect;
+        // Calcular ancho dinámico según longitud del texto (aprox 7px por carácter a 11px)
+        const charPx  = 7;
+        const padH    = type === 'diamond' ? 48 : 32;
+        const minW    = def.w;
+        const calcW   = Math.max(minW, label.length * charPx + padH);
+        const w = type === 'diamond' ? calcW : calcW;
+        // Alto: diamond crece igual que el ancho para mantener forma; el resto usa mínimo
+        const h = type === 'diamond' ? Math.max(def.h, w * 0.65) : def.h;
         const nd: NodeDef = {
             id: ++nodeIdCounter,
             type, label,
-            x: CX - def.w / 2,
+            x: CX - w / 2,
             y: layoutY,
-            w: def.w,
-            h: def.h,
+            w, h,
             color: color ?? COLORS[type] ?? '#b8c3ff',
         };
         nodes.push(nd);
-        layoutY += def.h + GAP - 70;
+        layoutY += h + GAP - 70;
         return nd;
     }
     /** Crea una conexión entre dos nodos */
@@ -1564,15 +1565,15 @@ function reToBlueprint(): void {
     let prevNodeId: number | null = null;
     let inElse = false;
     let elseAnchorId: number | null = null; // diamond que abre el if
-    for (const rawLine of lines) {
-        const line = rawLine;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         let nd: NodeDef | null = null;
         if (reProgram.test(line)) {
             const m = line.match(reProgram)!;
             nd = addNode('oval', m[1], '#b8c3ff');
         } else if (reCloseBrace.test(line) && !reElse.test(line)) {
             // Cierre de bloque: puede ser fin de program o de if
-            const isLastBrace = lines.slice(lines.indexOf(line) + 1).every((l: string) => !l.trim() || l.trim() === '}');
+            const isLastBrace = lines.slice(i + 1).every((l: string) => !l.trim() || l.trim() === '}');
             if (isLastBrace || lines.filter((l: string) => l.trim() === '}').length <= 1) {
                 nd = addNode('oval', 'FIN', '#ffb4ab');
             }
@@ -1631,20 +1632,434 @@ function reToBlueprint(): void {
     showToast('Diagrama generado desde el código ✓');
 }
 
+/* ─────────────────────────────────────────────────────────
+   syncFlowFromCode() — Sincroniza el diagrama desde el código actual
+   Regenera el diagrama visual directamente sin pedir confirmación.
+   ───────────────────────────────────────────────────────── */
+function syncFlowFromCode(): void {
+    const code = editor.getValue();
+    if (!code.trim()) {
+        // Limpiar el canvas si no hay código
+        nodes = [];
+        connections = [];
+        nodeIdCounter = 0;
+        selectedNode = null;
+        bpNodes.innerHTML = '';
+        drawConnections();
+        updateStats();
+        const fs = document.getElementById('flowStats');
+        if (fs) fs.textContent = 'Sin código';
+        return;
+    }
+    // Reutilizar el parser de reToBlueprint() sin confirmación
+    saveHistory();
+    nodes = [];
+    connections = [];
+    nodeIdCounter = 0;
+    selectedNode = null;
+    bpNodes.innerHTML = '';
+    
+    // Restablecer zoom y pan al regenerar el diagrama para centrarlo
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+    bpNodes.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+    bpNodes.style.transformOrigin = '0 0';
+    const zoomLabel = document.getElementById('zoomLabel');
+    if (zoomLabel) zoomLabel.textContent = '100%';
+
+    drawConnections();
+
+    const reProgram   = /^\s*program\s+(\w+)\s*\{/;
+    const reCloseBrace= /^\s*\}/;
+    const reIf        = /^\s*if\s*\((.+?)\)\s*\{/;
+    const reElse      = /^\s*\}\s*else\s*\{/;
+    const reWhile     = /^\s*while\s*\((.+?)\)\s*\{/;
+    const reFor       = /^\s*for\s+(\w+)\s+in\s+(.+?)\s*\{/;
+    const rePrint     = /^\s*print\s*\((.+)\)\s*;/;
+    const reInput     = /^\s*(\w+)\s+(\w+)\s*=\s*input\s*\((.+?)\)\s*;/;
+    const reDecl      = /^\s*(int|double|string|bool|var)\s+(\w+)\s*=\s*(.+?)\s*;/;
+    const reAssign    = /^\s*(\w+)\s*=\s*(.+?)\s*;/;
+    const reComment   = /^\s*\/\/(.+)/;
+    const COLORS: Record<string, string> = {
+        oval:    '#b8c3ff',
+        rect:    '#a8e6cf',
+        diamond: '#ffe082',
+        para:    '#ffb59b',
+        loop:    '#c3b1e1',
+    };
+    let layoutY = 80;
+    const CX = 380;
+    const GAP = 130;
+
+    function addNode(type: string, label: string, color?: string): NodeDef {
+        const def = NODE_DEFAULTS[type] || NODE_DEFAULTS.rect;
+        // Calcular ancho dinámico según longitud del texto (aprox 7px por carácter a 11px)
+        const charPx = 7;
+        const padH   = type === 'diamond' ? 48 : 32;
+        const minW   = def.w;
+        const calcW  = Math.max(minW, label.length * charPx + padH);
+        const w = calcW;
+        // Alto: diamond crece proporcional al ancho para mantener la forma de rombo
+        const h = type === 'diamond' ? Math.max(def.h, w * 0.65) : def.h;
+        const nd: NodeDef = {
+            id: ++nodeIdCounter,
+            type, label,
+            x: CX - w / 2,
+            y: layoutY,
+            w, h,
+            color: color ?? COLORS[type] ?? '#b8c3ff',
+        };
+        nodes.push(nd);
+        layoutY += h + GAP - 70;
+        return nd;
+    }
+    function addConn(fromId: number, fromPort: string, toId: number, toPort: string) {
+        connections.push({ from: fromId, fromPort, to: toId, toPort, id: ++nodeIdCounter });
+    }
+
+    const lines = code.split('\n');
+    let prevNodeId: number | null = null;
+    let inElse = false;
+    let elseAnchorId: number | null = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        let nd: NodeDef | null = null;
+        if (reProgram.test(line)) {
+            const m = line.match(reProgram)!;
+            nd = addNode('oval', m[1], '#b8c3ff');
+        } else if (reElse.test(line)) {
+            inElse = true;
+            continue;
+        } else if (reCloseBrace.test(line)) {
+            const isLastBrace = lines.slice(i + 1).every((l: string) => !l.trim() || l.trim() === '}');
+            if (isLastBrace || lines.filter((l: string) => l.trim() === '}').length <= 1) {
+                nd = addNode('oval', 'FIN', '#ffb4ab');
+            }
+            inElse = false;
+            elseAnchorId = null;
+        } else if (reWhile.test(line)) {
+            const m = line.match(reWhile)!;
+            nd = addNode('diamond', `¿while (${m[1]})?`, COLORS.diamond);
+            elseAnchorId = nd.id;
+        } else if (reFor.test(line)) {
+            const m = line.match(reFor)!;
+            nd = addNode('diamond', `¿for ${m[1]} in ${m[2]}?`, COLORS.diamond);
+            elseAnchorId = nd.id;
+        } else if (reIf.test(line)) {
+            const m = line.match(reIf)!;
+            nd = addNode('diamond', `¿${m[1]}?`, COLORS.diamond);
+            elseAnchorId = nd.id;
+        } else if (rePrint.test(line)) {
+            const m = line.match(rePrint)!;
+            const arg = m[1].trim().replace(/^"|"$/g, '');
+            nd = addNode('para', `print(${arg})`, COLORS.para);
+        } else if (reInput.test(line)) {
+            const m = line.match(reInput)!;
+            nd = addNode('para', `input → ${m[2]}`, COLORS.para);
+        } else if (reDecl.test(line)) {
+            const m = line.match(reDecl)!;
+            nd = addNode('rect', `${m[1]} ${m[2]} = ${m[3]}`, COLORS.rect);
+        } else if (reAssign.test(line)) {
+            const m = line.match(reAssign)!;
+            nd = addNode('rect', `${m[1]} = ${m[2]}`, COLORS.rect);
+        } else if (reComment.test(line)) {
+            const m = line.match(reComment)!;
+            const txt = m[1].trim();
+            if (txt && !/rama then|rama else/i.test(txt)) {
+                nd = addNode('rect', `// ${txt}`, '#c3c7cd');
+            }
+        }
+        if (nd) {
+            if (prevNodeId !== null) {
+                if (inElse && elseAnchorId !== null) {
+                    addConn(elseAnchorId, 'e', nd.id, 'w');
+                    inElse = false;
+                    elseAnchorId = null;
+                } else {
+                    addConn(prevNodeId, 's', nd.id, 'n');
+                }
+            }
+            prevNodeId = nd.id;
+        }
+    }
+
+    nodes.forEach(n => renderNode(n));
+    drawConnections();
+    updateStats();
+    setSyncStatus('ok', 'FLOW ✓');
+}
+
+/* ─────────────────────────────────────────────────────────
+   exportFlowSVG() — Exporta el diagrama actual como SVG
+   Genera un SVG a partir del estado actual del canvas.
+   ───────────────────────────────────────────────────────── */
+function exportFlowSVG(): void {
+    if (nodes.length === 0) {
+        showToast('No hay diagrama para exportar. Cambia a FLOW primero.');
+        return;
+    }
+    // Calcular bounding box
+    const margin = 40;
+    const minX = Math.min(...nodes.map(n => n.x)) - margin;
+    const minY = Math.min(...nodes.map(n => n.y)) - margin;
+    const maxX = Math.max(...nodes.map(n => n.x + n.w)) + margin;
+    const maxY = Math.max(...nodes.map(n => n.y + n.h)) + margin;
+    const W = maxX - minX;
+    const H = maxY - minY;
+
+    const svgParts: string[] = [
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="${minX} ${minY} ${W} ${H}">`,
+        `<rect x="${minX}" y="${minY}" width="${W}" height="${H}" fill="#11131c"/>`,
+        `<defs><marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">`,
+        `<polygon points="0 0, 10 3.5, 0 7" fill="rgba(184,195,255,0.8)"/></marker></defs>`,
+    ];
+
+    // Conexiones
+    const getPortPos = (node: NodeDef, port: string) => {
+        const cx = node.x + node.w / 2, cy = node.y + node.h / 2;
+        switch (port) {
+            case 'n': return { x: cx, y: node.y };
+            case 's': return { x: cx, y: node.y + node.h };
+            case 'e': return { x: node.x + node.w, y: cy };
+            case 'w': return { x: node.x, y: cy };
+            default: return { x: cx, y: cy };
+        }
+    };
+    connections.forEach(c => {
+        const from = nodes.find(n => n.id === c.from);
+        const to = nodes.find(n => n.id === c.to);
+        if (!from || !to) return;
+        const p1 = getPortPos(from, c.fromPort);
+        const p2 = getPortPos(to, c.toPort);
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const cx1 = p1.x + dx * .4, cy1 = p1.y + dy * .4;
+        const cx2 = p2.x - dx * .4, cy2 = p2.y - dy * .4;
+        svgParts.push(`<path d="M${p1.x},${p1.y} C${cx1},${cy1} ${cx2},${cy2} ${p2.x},${p2.y}" stroke="rgba(184,195,255,0.7)" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>`);
+    });
+
+    // Nodos
+    nodes.forEach(nd => {
+        const color = nd.color || '#b8c3ff';
+        if (nd.type === 'oval' || nd.type === 'term') {
+            svgParts.push(`<ellipse cx="${nd.x + nd.w/2}" cy="${nd.y + nd.h/2}" rx="${nd.w/2}" ry="${nd.h/2}" fill="${color}20" stroke="${color}" stroke-width="1.5"/>`);
+            svgParts.push(`<text x="${nd.x + nd.w/2}" y="${nd.y + nd.h/2 + 4}" text-anchor="middle" fill="${color}" font-size="10" font-family="monospace">${nd.label}</text>`);
+        } else if (nd.type === 'diamond') {
+            const cx = nd.x + nd.w/2, cy = nd.y + nd.h/2;
+            svgParts.push(`<polygon points="${cx},${nd.y} ${nd.x+nd.w},${cy} ${cx},${nd.y+nd.h} ${nd.x},${cy}" fill="${color}20" stroke="${color}" stroke-width="1.5"/>`);
+            svgParts.push(`<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${color}" font-size="9" font-family="monospace">${nd.label}</text>`);
+        } else {
+            const skew = nd.type === 'para' ? 10 : 0;
+            svgParts.push(`<rect x="${nd.x + skew}" y="${nd.y}" width="${nd.w - skew*2}" height="${nd.h}" rx="4" fill="${color}15" stroke="${color}80" stroke-width="1"/>`);
+            svgParts.push(`<text x="${nd.x + nd.w/2}" y="${nd.y + nd.h/2 + 4}" text-anchor="middle" fill="${color}cc" font-size="10" font-family="monospace">${nd.label}</text>`);
+        }
+    });
+
+    svgParts.push('</svg>');
+    const svgStr = svgParts.join('\n');
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagrama_flujo.svg';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Diagrama exportado como diagrama_flujo.svg');
+}
+
+/* ════════════════════════════════
+   MODAL GUARDAR COMO
+   ════════════════════════════════ */
+const saveAsOverlay = document.getElementById('saveAsOverlay') as HTMLDivElement;
+const saFilenameInput = document.getElementById('saFilename') as HTMLInputElement;
+let saCurrentDir: string = 'c:\\Users\\zarat\\Logos\\RE';
+
+async function saOpenDir(dirPath: string) {
+    try {
+        saCurrentDir = dirPath;
+        const entries: Array<{ name: string; path: string; is_dir: boolean; size: number }> =
+            await invoke('list_directory', { path: dirPath });
+
+        const saBreadcrumbText = document.getElementById('saBreadcrumbText')!;
+        saBreadcrumbText.textContent = dirPath;
+
+        const saCurrentPath = document.getElementById('saCurrentPath')!;
+        saCurrentPath.textContent = dirPath;
+
+        const saBrowser = document.getElementById('saBrowser')!;
+        saBrowser.innerHTML = '';
+
+        // Botón para subir un nivel (si no estamos en la raíz)
+        const parts = dirPath.replace(/\\/g, '/').split('/').filter(Boolean);
+        if (parts.length > 1) {
+            const upEl = document.createElement('div');
+            upEl.className = 'sa-browser-item';
+            upEl.innerHTML = '<span class="material-symbols-outlined sa-item-ico">arrow_upward</span><span class="sa-item-name">.. (Subir un nivel)</span>';
+            upEl.addEventListener('click', () => {
+                const parent = parts.slice(0, -1).join('\\');
+                saOpenDir(parent.startsWith('c:') ? parent : '\\' + parent);
+            });
+            saBrowser.appendChild(upEl);
+        }
+
+        // Renderizar directorios primero, luego archivos
+        const dirs = entries.filter(e => e.is_dir);
+        const files = entries.filter(e => !e.is_dir);
+
+        for (const dir of dirs) {
+            const el = document.createElement('div');
+            el.className = 'sa-browser-item';
+            el.innerHTML = `<span class="material-symbols-outlined sa-item-ico" style="color: #ffb59b;">folder</span><span class="sa-item-name">${dir.name}</span>`;
+            el.addEventListener('click', () => {
+                saOpenDir(dir.path);
+            });
+            saBrowser.appendChild(el);
+        }
+
+        for (const file of files) {
+            const el = document.createElement('div');
+            el.className = 'sa-browser-item';
+            const isRe = file.name.endsWith('.re');
+            const ico = isRe ? 'description' : 'insert_drive_file';
+            const color = isRe ? '#a8e6cf' : '#8e90a2';
+            el.innerHTML = `<span class="material-symbols-outlined sa-item-ico" style="color: ${color};">${ico}</span><span class="sa-item-name">${file.name}</span>`;
+            el.addEventListener('click', () => {
+                // Seleccionar archivo, pre-llenar input
+                if (file.name.endsWith('.re')) {
+                    saFilenameInput.value = file.name.slice(0, -3); // quitar .re
+                } else {
+                    saFilenameInput.value = file.name;
+                }
+                // Resaltar elemento seleccionado
+                document.querySelectorAll('#saBrowser .sa-browser-item').forEach(item => item.classList.remove('selected'));
+                el.classList.add('selected');
+            });
+            saBrowser.appendChild(el);
+        }
+    } catch (e) {
+        showToast('Error al leer directorio en modal: ' + e);
+    }
+}
+
+/** Abre el modal de Guardar como e inicializa el browser */
+function openSaveAsModal(): void {
+    // Determinar directorio inicial
+    let initialDir = explorerDir;
+    let initialFilename = '';
+
+    if (currentFilePath) {
+        const lastSlash = Math.max(currentFilePath.lastIndexOf('/'), currentFilePath.lastIndexOf('\\'));
+        if (lastSlash !== -1) {
+            initialDir = currentFilePath.substring(0, lastSlash);
+            const fullFilename = currentFilePath.substring(lastSlash + 1);
+            if (fullFilename.endsWith('.re')) {
+                initialFilename = fullFilename.slice(0, -3);
+            } else {
+                initialFilename = fullFilename;
+            }
+        }
+    } else {
+        initialFilename = 'nuevo_programa';
+    }
+
+    saFilenameInput.value = initialFilename;
+    saveAsOverlay.style.display = 'flex';
+    saOpenDir(initialDir);
+    setTimeout(() => {
+        saFilenameInput.focus();
+        saFilenameInput.select();
+    }, 80);
+}
+
+/** Cierra el modal sin guardar */
+function closeSaveAsModal(): void {
+    saveAsOverlay.style.display = 'none';
+}
+
+/** Guarda el contenido del editor en la ruta seleccionada */
+async function confirmSaveAs(): Promise<void> {
+    let filename = saFilenameInput.value.trim();
+    if (!filename) {
+        showToast('Escribe un nombre de archivo válido');
+        saFilenameInput.focus();
+        return;
+    }
+
+    // Asegurar extensión .re
+    if (!filename.endsWith('.re')) {
+        filename += '.re';
+    }
+
+    const path = saCurrentDir + (saCurrentDir.endsWith('\\') || saCurrentDir.endsWith('/') ? '' : '\\') + filename;
+
+    try {
+        const content = editor.getValue();
+        await invoke('write_file', { path, content });
+        currentFilePath = path;
+        
+        // Recargar el explorador si el archivo pertenece a la carpeta que se muestra
+        if (saCurrentDir.toLowerCase() === explorerDir.toLowerCase()) {
+            loadDirectory(explorerDir);
+        }
+        
+        closeSaveAsModal();
+        showToast('✓ Guardado en: ' + filename);
+    } catch (e) {
+        showToast('Error al guardar: ' + e);
+    }
+}
+
+// Cerrar modal al hacer clic fuera del cuadro
+saveAsOverlay.addEventListener('click', (e) => {
+    if (e.target === saveAsOverlay) closeSaveAsModal();
+});
+// Guardar al presionar Enter dentro del input
+saFilenameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmSaveAs(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeSaveAsModal(); }
+});
+// Ctrl+Shift+S para abrir el modal desde cualquier vista
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        openSaveAsModal();
+    }
+});
+
 /* ── INIT ── */
 setTimeout(() => {
     resizeBpCanvas();
-    addDemoNodes();
+    // Inicializar herramienta pan (la única activa en modo visual)
+    setTool('pan');
+
+    // Manejadores de eventos de los botones del flujo y guardar como
+    document.getElementById('btnRefreshFlow')?.addEventListener('click', syncFlowFromCode);
+    document.getElementById('btnLegendRefresh')?.addEventListener('click', syncFlowFromCode);
+    document.getElementById('btnToolbarRefresh')?.addEventListener('click', syncFlowFromCode);
+    
+    document.getElementById('btnZoomOut')?.addEventListener('click', () => changeZoom(-0.15));
+    document.getElementById('btnZoomIn')?.addEventListener('click', () => changeZoom(0.15));
+    document.getElementById('btnZoomReset')?.addEventListener('click', () => changeZoom(0));
+
+    document.getElementById('btnExportSVG')?.addEventListener('click', exportFlowSVG);
+
+    // Botones del Modal Guardar Como
+    document.getElementById('btnSaveAs')?.addEventListener('click', openSaveAsModal);
+    document.getElementById('btnSaveAsClose')?.addEventListener('click', closeSaveAsModal);
+    document.getElementById('btnSaveAsCancel')?.addEventListener('click', closeSaveAsModal);
+    document.getElementById('btnSaveAsConfirm')?.addEventListener('click', confirmSaveAs);
+    
+    // Listener del botón de la toolbar tbPan
+    document.getElementById('tbPan')?.addEventListener('click', () => setTool('pan'));
 }, 100);
 
 console.log('%c🔧 LOGOS IDE %cListo',
     'color:#b8c3ff;font-size:16px;font-weight:bold;',
     'color:#e2e1ef;');
-console.log('%c📐 Panel lateral %credimensionable %c| %c🖱️ Arrastra el borde derecho',
-    'color:#ffb59b;', 'color:#e2e1ef;', 'color:#8e90a2;', 'color:#c4c5d9;');
-console.log('%c📏 Consola %credimensionable %c| %c🖱️ Arrastra el borde superior de SALIDA',
-    'color:#ffb59b;', 'color:#e2e1ef;', 'color:#8e90a2;', 'color:#c4c5d9;');
-console.log('%c🧩 Figuras %carrastrables desde la Caja de Herramientas al lienzo',
+console.log('%c📐 Flow visual %cauto-sincronizado con el código',
+    'color:#ffb59b;', 'color:#e2e1ef;');
+console.log('%c💾 Guardar como %cCtrl+Shift+S o botón en la barra de herramientas',
     'color:#a8e6cf;', 'color:#e2e1ef;');
 
 // Exponer funciones globales para controladores de eventos HTML inline
@@ -1654,13 +2069,23 @@ console.log('%c🧩 Figuras %carrastrables desde la Caja de Herramientas al lien
 (window as any).autoLayout = autoLayout;
 (window as any).changeZoom = changeZoom;
 (window as any).toggleSection = toggleSection;
+(window as any).exportFlowSVG = exportFlowSVG;
 (window as any).exportSVG = exportSVG;
 (window as any).updateLabel = updateLabel;
+(window as any).deleteNode = deleteNode;
+(window as any).startConnect = startConnect;
+(window as any).addDemoNodes = addDemoNodes;
 (window as any).runCode = runCode;
 (window as any).loadDirectory = loadDirectory;
 (window as any).openFile = openFile;
 (window as any).saveCurrentFile = saveCurrentFile;
-
-// Hito 5
+// Guardar como
+(window as any).openSaveAsModal = openSaveAsModal;
+(window as any).closeSaveAsModal = closeSaveAsModal;
+(window as any).confirmSaveAs = confirmSaveAs;
+// Sync diagrama
+(window as any).syncFlowFromCode = syncFlowFromCode;
+// Legado (se mantiene por compatibilidad con herramientas externas)
 (window as any).blueprintToRE = blueprintToRE;
 (window as any).reToBlueprint = reToBlueprint;
+

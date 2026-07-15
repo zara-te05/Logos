@@ -1,15 +1,11 @@
 # Estado del Lenguaje "Re" - Que falta implementar
-
 ## YA ESTA HECHO (en la gramatica)
 - Tokens del Lexer: tipos, operadores, control de flujo, literales
 - Gramatica del Parser: program, function_decl, if, while, do-while, for..in, var_decl, var_assign, print, expresiones con precedencia
 - Environment (tabla de simbolos con scopes anidados)
 - Soporte de comentarios de linea (//) y de bloque (/* */)
-
 ---
-
 ## YA IMPLEMENTADO EN EL INTERPRETE (Sesion 1 - 2026-06-12)
-
 ### Expresiones (visitExpression) - COMPLETO
 - [x] Literales: int, double, string, bool
 - [x] Operadores aritmeticos: +, -, *, /, ^
@@ -20,37 +16,29 @@
 - [x] Leer el valor de una variable (ID)
 - [x] Acceso a arreglos con indice (arr[i])
 - [x] Concatenacion de strings con +
-
 ### Variables - COMPLETO
 - [x] visitVar_decl - Declarar variables con tipo fuerte (int, double, string, bool, var)
 - [x] visitVar_assign - Reasignar el valor de una variable existente
 - [x] enforceType - Verificacion de tipo en tiempo de ejecucion
-
 ### Control de flujo - COMPLETO
 - [x] visitIf_statement - if / else if / else
 - [x] visitWhile_statement - while
 - [x] visitDo_while_statement - do-while
 - [x] visitFor_statement - for x in rango (..) / lista literal ([]) / variable
-
 ### Funciones - COMPLETO
 - [x] visitFunction_decl - Registrar funciones en memoria con closure
 - [x] visitFunction_call - Llamar funciones, pasar argumentos, crear scope nuevo
 - [x] visitReturn_statement - Devolver valores de funciones (via ReturnSignal)
 - [x] Pre-registro de funciones (se pueden usar antes de ser declaradas)
-
 ### Print - COMPLETO
 - [x] Evalua cualquier expresion (string, bool, int, double, operaciones)
 - [x] Imprime linea vacia con print() sin argumentos
-
 ---
-
 ## YA IMPLEMENTADO EN EL INTERPRETE (Sesion 2 - 2026-06-12)
-
 ### Operadores de Asignacion Compuesta - COMPLETO
 - [x] +=, -=, *=, /= - Implementados en gramatica Y en el interprete
 - [x] += con strings funciona como concatenacion (s += " mundo")
 - [x] Verificacion de tipo para -=, *=, /= (requieren numerico)
-
 ### Colecciones - IMPLEMENTADO
 - [x] list<T> - listas dinamicas: declaracion, inicializacion con literales
 - [x] list<T>.add(val) - agregar elementos
@@ -64,25 +52,21 @@
 - [x] for x in lista/array - iterar sobre colecciones
 - [x] print(lista/array) - muestra "[elem1, elem2, ...]"
 - [x] queue<T> / stack<T> - implementados sobre ReList (basico)
-
 ### Metodos de String - IMPLEMENTADO
 - [x] str.upper() / str.toUpperCase() - convertir a mayusculas
 - [x] str.lower() / str.toLowerCase() - convertir a minusculas
 - [x] str.size() / str.length() - obtener longitud
 - [x] str.contains(sub) - verificar si contiene subcadena
 - [x] str.substring(start, end?) - extraer subcadena
-
 ### Funciones Incorporadas (Built-in) - IMPLEMENTADO
 - [x] to_int(val) - convertir a entero
 - [x] to_str(val) - convertir a string
 - [x] to_double(val) - convertir a double
 - [x] len(val) / size(val) - longitud de string, lista, array
-
 ### Mensajes de Error Mejorados - IMPLEMENTADO
 - [x] Errores con numero de linea y columna en expresiones
 - [x] Errores con linea en llamadas a funciones (argumento incorrecto, no definida)
 - [x] Errores con linea en operadores compuestos
-
 ### TypeChecker.ts (Analisis Estatico) - IMPLEMENTADO
 - [x] Verificacion de tipos en tiempo de compilacion (ANTES de ejecutar)
 - [x] Detectar que no asignes un string a un int
@@ -94,40 +78,30 @@
 - [x] Inferencia de tipo de expresiones (+, -, *, /, comparaciones, etc.)
 - [x] Verificar metodos de string, list<T>, array<T>
 - [x] Verificar operadores compuestos (+=, -=, *=, /=) con tipos correctos
-
 #### Input - IMPLEMENTADO (Completo y Multiplataforma)
 - [x] input_statement: var x = input("Prompt"); - lee de stdin sincrono usando fs.readSync directamente.
 - [x] Funciona de forma multiplataforma en Linux, Windows y macOS.
 - [x] Corregido comportamiento de prompt flusheando de manera síncrona.
-
 ---
-
 ## YA IMPLEMENTADO EN EL INTERPRETE Y TYPECHECKER (Sesion 3 - 2026-06-12)
-
 ### Colecciones Especializadas
 - [x] queue<T> y stack<T> como clases nativas independientes (ReQueue y ReStack)
 - [x] Métodos de queue: .enqueue(val), .dequeue(), .size()
 - [x] Métodos de stack: .push(val), .pop(), .size()
 - [x] Arrays de tamaño fijo reales (no exponen .add ni .remove, no reasignables por índice)
-
 ### Mejoras del TypeChecker
 - [x] Inferencia del tipo de la variable iteradora del for-in según la colección o rango
 - [x] Verificación de tipos en argumentos de métodos de listas, arrays, colas, pilas y strings
 - [x] Verificación de tipos de operandos en operaciones aritméticas (-, *, /, ^, unario -) y lógicas (and, or)
 - [x] Validación de tipos mixtos incompatibles dentro de listas literales [1, 2, "tres"]
-
 ---
-
 ## PENDIENTE PARA PROXIMAS SESIONES
-
 ### 1. Modularizacion (avanzado)
 - [ ] import "archivo.re" para importar otros archivos del lenguaje
 - [ ] Separar el interprete en multiples archivos por responsabilidad
-
 ### 2. Ergonomia Adicional
 - [ ] Soporte para strings multilinea (template literals)
 - [ ] Incremento/decremento: x++ / x-- como azucar sintatico sobre x += 1
-
 ### 3. Distribucion y Tooling (Sesion 4 - Parcialmente completado)
 - [x] CLI ejecutable `re` (src/compiler.cli/re.ts) - COMPLETO
 - [x] Servidor LSP `re-lsp` (src/compiler.cli/re-lsp.ts) - COMPLETO
@@ -150,11 +124,8 @@
       -> Requiere cuenta en npmjs.com y configurar .npmignore
 - [ ] Empaquetar como binario standalone con `pkg` (no requiere Node.js instalado)
       -> npx pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64
-
 ---
-
 ## PUNTO DE PARADA
-
 > SESION 1 COMPLETADA (2026-06-12)
 >
 > Se implemento completamente el archivo Interpreter.ts con soporte para:
@@ -168,9 +139,7 @@
 > Todos los features se probaron con exito en index.ts. Resultado del test:
 >   20, 9.99, Ana, true, 25, 256, "Hola, Ana", "Es menor de edad",
 >   0,1,2 (while), 1,2,3,4,5 (for), 49 (cuadrado(7)), "Hola, Mundo"
-
 ---
-
 > SESION 2 COMPLETADA (2026-06-12)
 >
 > Implementados en Interpreter.ts y TypeChecker.ts:
@@ -192,9 +161,7 @@
 >   1. queue<T> y stack<T> con metodos propios
 >   2. Mejoras al TypeChecker (inferencia del tipo del for-in, int + string -> error)
 >   3. input() multiplataforma
-
 ---
-
 > SESION 3 COMPLETADA (2026-06-12)
 >
 > Implementados y corregidos en Interpreter.ts y TypeChecker.ts:
@@ -209,9 +176,7 @@
 > PROXIMA SESION - Empezar por:
 >   1. Modularización del lenguaje (sistema de importación)
 >   2. Operadores de incremento y decremento (x++, x--)
-
 ---
-
 > SESION 4 COMPLETADA (2026-06-15)
 >
 > Implementados en esta sesion (distribucion y tooling del lenguaje):
@@ -243,9 +208,7 @@
 >   1. Publicación y empaquetado final de la extensión de VS Code a un archivo .vsix usando la herramienta vsce.
 >   2. Creación del repositorio de extensiones local o publicación en la Marketplace de VS Code.
 >   3. Integrar sistema de importación y modularización ("import") en el parser e intérprete.
-
 ---
-
 > SESION 5 COMPLETADA (2026-06-15)
 >
 > Implementados en esta sesion (soporte para editores y tutorial de RE):
@@ -260,9 +223,7 @@
 > Pruebas y compilación:
 >   - Compilación de la extensión en editors/vscode: EXITOSA (npx tsc compila sin advertencias ni errores).
 >   - Verificación de la gramática de sintaxis: Estructurada según el esquema estándar de TextMate.
-
 ---
-
 > SESION 6 COMPLETADA (2026-07-15)
 >
 > Implementados en esta sesion (IDE Logos - mejoras visuales y UX):
@@ -276,21 +237,41 @@
 >   - Modal "Guardar como..." con input de ruta, validación, Enter/Escape y clic-fuera.
 >   - Botón "Guardar como..." (save_as) en la barra de la terminal.
 >   - Atajo Ctrl+Shift+S abre el modal desde cualquier vista.
+---
+> SESION 7 COMPLETADA (2026-07-15)
+>
+> Implementados en esta sesion:
+>   - **Autocompletado de palabras reservadas en Ace Editor**:
+>     · index.html: Carga de /ace/ext-language_tools.js antes de index.ts.
+>     · index.ts: ace.require("ace/ext/language_tools") activado antes de ace.edit().
+>     · index.ts: setOptions() ampliado con enableBasicAutocompletion, enableLiveAutocompletion
+>       y enableSnippets: true.
+>     · index.ts: Array RE_COMPLETIONS con 34 entradas limpias y sin "basura" de snippets ($1, etc.)
+>       que cubren todos los keywords y built-ins de RE (int, double, string, list, arrays, if, while, print, etc.).
+>     · index.ts: reCompleter personalizado que suprime completions dentro de comentarios
+>       y strings; registrado como el completer del editor.
+>   - **Redimensionamiento y visualización del Diagrama de Flujo**:
+>     · index.css y index.ts: Cambio de tamaños rígidos fijos a anchos y altos dinámicos
+>       calculados según la longitud de los textos de cada figura para evitar desbordamientos.
+>     · index.css: Se habilitó word-wrap/word-break y white-space normal para el texto del rombo (diamond).
+>   - **Modal de "Guardar como..." Mejorado**:
+>     · index.html: Rediseñado el modal para incluir un navegador de archivos scrollable,
+>       un visualizador de la ruta actual (breadcrumb) y campo para ingresar el nombre de archivo.
+>     · index.ts: Lógica de navegación e interacción. Carga y lista directorios, permite subir un nivel,
+>       selecciona archivos con un click para autocompletar su nombre, y guarda el archivo
+>       con extensión `.re` en la ruta seleccionada usando el canal IPC de Tauri.
 >
 > PROXIMA SESION - Empezar por:
->   1. Autocompletado de palabras reservadas de RE en el editor Ace (ver spec abajo)
-
+>   1. Incremento/decremento: x++ / x-- como azucar sintatico sobre x += 1
+>   2. Sistema de importación: import "archivo.re" en parser e intérprete
+>   3. Extensión VS Code: publicar .vsix (vsce package) y subir a Marketplace
 ---
-
 ## ESPECIFICACION: AUTOCOMPLETADO DE PALABRAS RESERVADAS DE RE EN ACE EDITOR
-
 ### Objetivo
 Implementar un completer de Ace Editor que sugiera automáticamente las palabras
 reservadas del lenguaje RE cuando el usuario escribe en el editor.
 El autocompletado es puramente de keywords — NO requiere análisis semántico.
-
 ### Palabras reservadas a autocompletar
-
   Tipos:         int, double, string, bool, var
   Colecciones:   list, array, queue, stack
   Control flujo: if, else, while, do, for, in, return
@@ -298,23 +279,17 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
   I/O / built-ins: print, input, to_str, to_int, to_double, len, size
   Literales:     true, false
   Operadores:    and, or, not
-
 ### Implementación técnica en Ace Editor
-
   Ace usa `ace.require("ace/ext/language_tools")` para habilitar completers.
   Se debe agregar un completer personalizado al array de completers del editor.
-
   PASO 1 — Agregar el script en index.html (ANTES de index.ts):
     <script src="/ace/ext-language_tools.js"></script>
-
   PASO 2 — En index.ts, antes de ace.edit(), activar la extensión:
     ace.require("ace/ext/language_tools");
-
   PASO 3 — Habilitar opciones de autocompletado en editor.setOptions():
     enableBasicAutocompletion: true,
     enableLiveAutocompletion:  true,    // se activa al escribir
     enableSnippets:            true     // permite snippets con Tab
-
   PASO 4 — Definir array RE_COMPLETIONS con estructura por entrada:
     {
       caption:  "keyword visible en la lista",
@@ -322,7 +297,6 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
       meta:     "RE",       // etiqueta de categoría
       score:    1000        // prioridad alta (supera al completer de palabras del texto)
     }
-
   PASO 5 — Snippets recomendados (con $1, $2, ${0} para Tab-stops):
     program  → "program ${1:Main} {\n  ${0}\n}"
     if       → "if (${1:condicion}) {\n  ${0}\n}"
@@ -336,7 +310,6 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
     to_int   → "to_int(${1:valor})"
     to_double→ "to_double(${1:valor})"
     return   → "return ${1:valor};"
-
   PASO 6 — Registrar el completer (en index.ts, después de editor.setOptions):
     const reCompleter = {
       getCompletions: (_editor, session, pos, _prefix, callback) => {
@@ -352,17 +325,14 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
     // Si se quiere TAMBIÉN el completer de palabras del buffer actual:
     // const langTools = ace.require("ace/ext/language_tools");
     // editor.completers = [reCompleter, langTools.textCompleter];
-
 ### Verificación de archivos necesarios en Logos-Front/ace/
   - ace/ext-language_tools.js   ← requerido para esta feature
   - ace/snippets/text.js        ← requerido si enableSnippets: true
   Copiar desde: node_modules/ace-builds/src-noconflict/ si no existen.
-
 ### Consideraciones adicionales
   - La tecla de activación default es Ctrl+Space (puede cambiarse).
   - Con enableLiveAutocompletion: true se dispara automáticamente al escribir.
   - Para reducir el delay: editor.completer puede accederse para configurar timers.
   - Los snippets requieren ace/ext/snippets.js adicional si se usan tab-stops ($1).
-
 ### Prioridad
   ALTA — Mejora significativa la experiencia de escritura de código RE en el IDE.
