@@ -232,6 +232,17 @@ btnCollapseTerm.addEventListener('click', () => {
 });
 
 document.getElementById('btnRun')!.addEventListener('click', runCode);
+document.getElementById('btnStepByStep')?.addEventListener('click', () => {
+    const code = editor.getValue();
+    if (!code.trim()) { showToast('El editor está vacío'); return; }
+    import('./stepper').then(({ generateSteps, openStepper }) => {
+        const steps = generateSteps(code);
+        if (steps.length === 0) { showToast('No se pudieron generar pasos'); return; }
+        openStepper(steps, editor);
+    }).catch(err => {
+        showToast('Error cargando el stepper: ' + err);
+    });
+});
 document.getElementById('btnClear')!.addEventListener('click', () => {
     termOutput.innerHTML =
         '<div class="out-line"><span class="out-prompt">›</span><span class="cursor-blink">_</span></div>';
@@ -1537,13 +1548,13 @@ function reToBlueprint(): void {
     function addNode(type: string, label: string, color?: string): NodeDef {
         const def = NODE_DEFAULTS[type] || NODE_DEFAULTS.rect;
         // Calcular ancho dinámico según longitud del texto (aprox 7px por carácter a 11px)
-        const charPx  = 7;
-        const padH    = type === 'diamond' ? 48 : 32;
-        const minW    = def.w;
-        const calcW   = Math.max(minW, label.length * charPx + padH);
+        const charPx = type === 'diamond' ? 9.5 : 7;
+        const padH   = type === 'diamond' ? 68 : 32;
+        const minW   = def.w;
+        const calcW  = Math.max(minW, label.length * charPx + padH);
         const w = type === 'diamond' ? calcW : calcW;
         // Alto: diamond crece igual que el ancho para mantener forma; el resto usa mínimo
-        const h = type === 'diamond' ? Math.max(def.h, w * 0.65) : def.h;
+        const h = type === 'diamond' ? Math.max(def.h, w * 0.7) : def.h;
         const nd: NodeDef = {
             id: ++nodeIdCounter,
             type, label,
@@ -1695,13 +1706,13 @@ function syncFlowFromCode(): void {
     function addNode(type: string, label: string, color?: string): NodeDef {
         const def = NODE_DEFAULTS[type] || NODE_DEFAULTS.rect;
         // Calcular ancho dinámico según longitud del texto (aprox 7px por carácter a 11px)
-        const charPx = 7;
-        const padH   = type === 'diamond' ? 48 : 32;
+        const charPx = type === 'diamond' ? 9.5 : 7;
+        const padH   = type === 'diamond' ? 68 : 32;
         const minW   = def.w;
         const calcW  = Math.max(minW, label.length * charPx + padH);
         const w = calcW;
         // Alto: diamond crece proporcional al ancho para mantener la forma de rombo
-        const h = type === 'diamond' ? Math.max(def.h, w * 0.65) : def.h;
+        const h = type === 'diamond' ? Math.max(def.h, w * 0.7) : def.h;
         const nd: NodeDef = {
             id: ++nodeIdCounter,
             type, label,
@@ -2085,6 +2096,9 @@ console.log('%c💾 Guardar como %cCtrl+Shift+S o botón en la barra de herramie
 (window as any).confirmSaveAs = confirmSaveAs;
 // Sync diagrama
 (window as any).syncFlowFromCode = syncFlowFromCode;
+// Stepper
+(window as any).openStepper = (steps: any, ed: any) => import('./stepper').then(({ openStepper }) => openStepper(steps, ed));
+(window as any).closeStepper = () => import('./stepper').then(({ closeStepper }) => closeStepper());
 // Legado (se mantiene por compatibilidad con herramientas externas)
 (window as any).blueprintToRE = blueprintToRE;
 (window as any).reToBlueprint = reToBlueprint;

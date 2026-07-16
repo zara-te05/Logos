@@ -62,6 +62,12 @@
                                 <div class="term-btns">
                                     <button class="term-btn run" id="btnRun">▶
                                         Ejecutar</button>
+                                    <button class="term-btn step" id="btnStepByStep" title="Visualizar ejecución paso a paso" style="background: #25283d; border-color: #363954; color: #b8c3ff; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">
+                                        <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">
+                                            skip_next
+                                        </span>
+                                        Paso a paso
+                                    </button>
                                     <button class="term-btn clr"
                                         id="btnClear">Limpiar</button>
                                     <button class="term-btn stp"
@@ -271,6 +277,48 @@
                         <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">save</span>
                         Guardar
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL PASO A PASO -->
+        <div id="stepperOverlay" class="stepper-overlay" style="display:none">
+            <div id="stepperPanel" class="stepper-panel">
+                <div id="stepperHeader" class="stepper-header">
+                    <span class="material-symbols-outlined">skip_next</span>
+                    <span>PASO A PASO</span>
+                    <button id="btnCloseStepper" class="stepper-close">✕</button>
+                </div>
+                <div class="stepper-body">
+                    <!-- columna izquierda: código con línea resaltada -->
+                    <div id="stepperCodeView" class="stepper-code-view"></div>
+                    <!-- columna central: animación -->
+                    <div id="stepperAnimArea" class="stepper-anim-area">
+                        <div id="stepperAnimCanvas" class="stepper-anim-canvas"></div>
+                        <div id="stepperDescription" class="stepper-description"></div>
+                    </div>
+                    <!-- columna derecha: tabla de variables -->
+                    <div id="stepperVarTable" class="stepper-var-table">
+                        <div class="stepper-var-title">VARIABLES</div>
+                        <div id="stepperVarList"></div>
+                    </div>
+                </div>
+                <div id="stepperControls" class="stepper-controls">
+                    <div id="stepperProgress" class="stepper-progress">
+                        <div id="stepperProgressBar" class="stepper-progress-bar"></div>
+                    </div>
+                    <div class="stepper-btn-row">
+                        <button id="btnStepFirst">⏮</button>
+                        <button id="btnStepPrev">◀ Anterior</button>
+                        <button id="btnStepPlay">▶ Play</button>
+                        <button id="btnStepNext">Siguiente ▶</button>
+                        <button id="btnStepLast">⏭</button>
+                        <select id="stepSpeed">
+                            <option value="2000">Lento</option>
+                            <option value="1000" selected>Normal</option>
+                            <option value="400">Rápido</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
