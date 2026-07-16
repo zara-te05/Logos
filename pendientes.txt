@@ -240,20 +240,26 @@
 ---
 > SESION 7 COMPLETADA (2026-07-15)
 >
-> Implementados en esta sesion (Autocompletado de palabras reservadas en Ace Editor):
->   - index.html: Carga de /ace/ext-language_tools.js antes de index.ts.
->   - index.ts: ace.require("ace/ext/language_tools") activado antes de ace.edit().
->   - index.ts: setOptions() ampliado con enableBasicAutocompletion, enableLiveAutocompletion
->     y enableSnippets: true.
->   - index.ts: Array RE_COMPLETIONS con 34 entradas que cubren todos los keywords de RE:
->       · Snippets con Tab-stops ($1, $2, ${0}): program, if, if/else, while, do-while,
->         for, print, input, return, to_str, to_int, to_double, len, size
->       · Keywords simples: int, double, string, bool, var
->       · Colecciones con tipo genérico: list<T>, array<T>, queue<T>, stack<T>
->       · Control de flujo: else, do, in
->       · Literales y operadores lógicos: true, false, and, or, not
->   - index.ts: reCompleter personalizado que suprime completions dentro de comentarios
->     y strings; registrado como editor.completers = [reCompleter].
+> Implementados en esta sesion:
+>   - **Autocompletado de palabras reservadas en Ace Editor**:
+>     · index.html: Carga de /ace/ext-language_tools.js antes de index.ts.
+>     · index.ts: ace.require("ace/ext/language_tools") activado antes de ace.edit().
+>     · index.ts: setOptions() ampliado con enableBasicAutocompletion, enableLiveAutocompletion
+>       y enableSnippets: true.
+>     · index.ts: Array RE_COMPLETIONS con 34 entradas limpias y sin "basura" de snippets ($1, etc.)
+>       que cubren todos los keywords y built-ins de RE (int, double, string, list, arrays, if, while, print, etc.).
+>     · index.ts: reCompleter personalizado que suprime completions dentro de comentarios
+>       y strings; registrado como el completer del editor.
+>   - **Redimensionamiento y visualización del Diagrama de Flujo**:
+>     · index.css y index.ts: Cambio de tamaños rígidos fijos a anchos y altos dinámicos
+>       calculados según la longitud de los textos de cada figura para evitar desbordamientos.
+>     · index.css: Se habilitó word-wrap/word-break y white-space normal para el texto del rombo (diamond).
+>   - **Modal de "Guardar como..." Mejorado**:
+>     · index.html: Rediseñado el modal para incluir un navegador de archivos scrollable,
+>       un visualizador de la ruta actual (breadcrumb) y campo para ingresar el nombre de archivo.
+>     · index.ts: Lógica de navegación e interacción. Carga y lista directorios, permite subir un nivel,
+>       selecciona archivos con un click para autocompletar su nombre, y guarda el archivo
+>       con extensión `.re` en la ruta seleccionada usando el canal IPC de Tauri.
 >
 > PROXIMA SESION - Empezar por:
 >   1. Incremento/decremento: x++ / x-- como azucar sintatico sobre x += 1
@@ -304,7 +310,6 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
     to_int   → "to_int(${1:valor})"
     to_double→ "to_double(${1:valor})"
     return   → "return ${1:valor};"
-
   PASO 6 — Registrar el completer (en index.ts, después de editor.setOptions):
     const reCompleter = {
       getCompletions: (_editor, session, pos, _prefix, callback) => {
@@ -316,7 +321,6 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
         callback(null, RE_COMPLETIONS);
       }
     };
-
     editor.completers = [reCompleter];
     // Si se quiere TAMBIÉN el completer de palabras del buffer actual:
     // const langTools = ace.require("ace/ext/language_tools");
@@ -325,7 +329,6 @@ El autocompletado es puramente de keywords — NO requiere análisis semántico.
   - ace/ext-language_tools.js   ← requerido para esta feature
   - ace/snippets/text.js        ← requerido si enableSnippets: true
   Copiar desde: node_modules/ace-builds/src-noconflict/ si no existen.
-  
 ### Consideraciones adicionales
   - La tecla de activación default es Ctrl+Space (puede cambiarse).
   - Con enableLiveAutocompletion: true se dispara automáticamente al escribir.
