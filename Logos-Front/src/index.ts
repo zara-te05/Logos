@@ -789,31 +789,56 @@ setTimeout(() => {
    VIEW SWITCH
    ════════════════════════════════ */
 const btnCode = document.getElementById('btnCode') as HTMLButtonElement,
-    btnFlow = document.getElementById('btnFlow') as HTMLButtonElement;
+    btnFlow = document.getElementById('btnFlow') as HTMLButtonElement,
+    btnLogic = document.getElementById('btnLogic') as HTMLButtonElement;
 const viewCode = document.getElementById('viewCode') as HTMLDivElement,
-    viewFlow = document.getElementById('viewFlow') as HTMLDivElement;
+    viewFlow = document.getElementById('viewFlow') as HTMLDivElement,
+    viewLogic = document.getElementById('viewLogic') as HTMLDivElement;
 const tabsFlow = document.getElementById('tabsFlow') as HTMLDivElement;
 const statusMode = document.getElementById('statusMode') as HTMLSpanElement;
+
+let logicBuilderInitialized = false;
 
 function setView(v: string) {
     currentView = v;
     const isCode = v === 'code';
+    const isFlow = v === 'flow';
+    const isLogic = v === 'logic';
     viewCode.classList.toggle('hidden', !isCode);
-    viewFlow.classList.toggle('hidden', isCode);
-    tabsFlow.classList.toggle('hidden', isCode);
+    viewFlow.classList.toggle('hidden', !isFlow);
+    viewLogic.classList.toggle('hidden', !isLogic);
+    tabsFlow.classList.toggle('hidden', !isFlow);
     btnCode.classList.toggle('active', isCode);
-    btnFlow.classList.toggle('active', !isCode);
-    statusMode.textContent = isCode ? 'CODE_EDITOR' : 'FLOW_VIEWER';
-    if (!isCode) {
+    btnFlow.classList.toggle('active', isFlow);
+    btnLogic.classList.toggle('active', isLogic);
+    statusMode.textContent = isCode ? 'CODE_EDITOR' : isFlow ? 'FLOW_VIEWER' : 'RAPTOR_BUILDER';
+    if (isFlow) {
         // Retraso de 50ms para permitir que el navegador recalcule las dimensiones del layout antes de redimensionar el canvas
         setTimeout(() => {
             resizeBpCanvas();
             syncFlowFromCode();
         }, 50);
     }
+    if (isLogic && !logicBuilderInitialized) {
+        import('./logic-builder').then(({ initLogicBuilder }) => {
+            initLogicBuilder();
+            logicBuilderInitialized = true;
+        }).catch(err => showToast('Error cargando Logic Builder: ' + err));
+    }
 }
 btnCode.addEventListener('click', () => setView('code'));
 btnFlow.addEventListener('click', () => setView('flow'));
+btnLogic.addEventListener('click', () => setView('logic'));
+
+// Escuchar evento de "Enviar al editor" desde el Logic Builder
+window.addEventListener('lb-send-to-editor', (e: Event) => {
+    const code = (e as CustomEvent).detail?.code;
+    if (code) {
+        setCode(code);
+        setView('code');
+        showToast('✓ Código cargado en el editor');
+    }
+});
 
 /* ════════════════════════════════
    BLUEPRINT ENGINE

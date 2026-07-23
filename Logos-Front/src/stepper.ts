@@ -7,10 +7,22 @@ export interface StepFrame {
     variables: Record<string, { value: any; type: string; isNew?: boolean; isChanged?: boolean }>;
     description: string;
     animationType: 'block_sum' | 'block_sub' | 'block_mul' | 'block_div' | 'branch_true' | 'branch_false' | 'loop_enter' | 'loop_back' | 'assign_flow' | 'print_bubble' | 'none';
-    animationData?: any;
+    animationData?: {
+        // Aritmética
+        left?: any;
+        leftName?: string;      // Nombre de la variable izquierda (ej: "a")
+        right?: any;
+        rightName?: string;     // Nombre de la variable derecha (ej: "b")
+        op?: string;            // Operador (ej: "+")
+        result?: any;           // Resultado calculado
+        destVar?: string;       // Variable destino (ej: "suma")
+        // Asignación simple
+        value?: any;
+    };
     activeVariable?: string;
     conditionResult?: boolean;
     loopIteration?: number;
+    nodeId?: number;            // ID del nodo del diagrama correspondiente a esta línea
 }
 
 // Helper to escape HTML characters
@@ -25,16 +37,14 @@ function escapeHtml(text: string): string {
 
 // Simple expression evaluator using JS evaluation safely with scoped variables
 function evaluateExpression(expr: string, vars: Record<string, { value: any; type: string }>): any {
-    // Clean string representation of arrays/lists to make evaluation simpler
     let safeExpr = expr.trim();
     
     // Replace variable names with their actual values
-    // Sort keys by length descending to avoid replacing substrings of longer names (e.g. 'x' inside 'x1')
+    // Sort keys by length descending to avoid replacing substrings of longer names
     const sortedVarNames = Object.keys(vars).sort((a, b) => b.length - a.length);
     for (const name of sortedVarNames) {
         const val = vars[name].value;
         const valStr = typeof val === 'string' ? `"${val.replace(/"/g, '\\"')}"` : String(val);
-        // Replace words matching name
         const regex = new RegExp(`\\b${name}\\b`, 'g');
         safeExpr = safeExpr.replace(regex, valStr);
     }
@@ -45,11 +55,21 @@ function evaluateExpression(expr: string, vars: Record<string, { value: any; typ
     safeExpr = safeExpr.replace(/\bnot\b/g, '!');
 
     try {
-        // Safe evaluation context
-        const fn = new Function(`return (${safeExpr});`);
-        return fn();
+        const fn = new Function(
+            'to_str', 'to_int', 'to_double', 'to_bool',
+            'len', 'size', 'sqrt', 'abs', 'round', 'floor', 'ceil', 'pow', 'max', 'min',
+            `return (${safeExpr});`
+        );
+        return fn(
+            (x: any) => String(x),
+            (x: any) => parseInt(x, 10) || 0,
+            (x: any) => parseFloat(x) || 0,
+            (x: any) => Boolean(x),
+            (x: any) => x?.length ?? 0,
+            (x: any) => x?.length ?? 0,
+            Math.sqrt, Math.abs, Math.round, Math.floor, Math.ceil, Math.pow, Math.max, Math.min
+        );
     } catch (e) {
-        // Fallback for strings, arrays, or failed evaluations
         if (safeExpr.startsWith('"') && safeExpr.endsWith('"')) {
             return safeExpr.substring(1, safeExpr.length - 1);
         }
@@ -142,18 +162,28 @@ export function generateSteps(code: string): StepFrame[] {
             const mathMatch = expr.match(/^\s*(\w+|\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*(\w+|\d+(?:\.\d+)?)\s*$/);
             if (mathMatch) {
                 const op = mathMatch[2];
-                const left = evaluateExpression(mathMatch[1], varsSnapshot);
-                const right = evaluateExpression(mathMatch[3], varsSnapshot);
+                const leftToken = mathMatch[1];
+                const rightToken = mathMatch[3];
+                const left = evaluateExpression(leftToken, varsSnapshot);
+                const right = evaluateExpression(rightToken, varsSnapshot);
                 const val = evaluateExpression(expr, varsSnapshot);
                 
                 animType = op === '+' ? 'block_sum' : op === '-' ? 'block_sub' : op === '*' ? 'block_mul' : 'block_div';
-                animationData = { left, op, right, result: val };
+                animationData = {
+                    left,
+                    leftName: isNaN(Number(leftToken)) ? leftToken : undefined,
+                    right,
+                    rightName: isNaN(Number(rightToken)) ? rightToken : undefined,
+                    op,
+                    result: val,
+                    destVar: name
+                };
                 
                 currentVars[name] = { value: val, type };
             } else {
                 const val = evaluateExpression(expr, varsSnapshot);
                 animType = 'assign_flow';
-                animationData = { value: val };
+                animationData = { value: val, destVar: name };
                 currentVars[name] = { value: val, type };
             }
 
@@ -200,15 +230,25 @@ export function generateSteps(code: string): StepFrame[] {
             const mathMatch = processedExpr.match(/^\s*(\w+|\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*(\w+|\d+(?:\.\d+)?)\s*$/);
             if (mathMatch) {
                 const mathOp = mathMatch[2];
-                const left = evaluateExpression(mathMatch[1], varsSnapshot);
-                const right = evaluateExpression(mathMatch[3], varsSnapshot);
+                const leftToken = mathMatch[1];
+                const rightToken = mathMatch[3];
+                const left = evaluateExpression(leftToken, varsSnapshot);
+                const right = evaluateExpression(rightToken, varsSnapshot);
                 newVal = evaluateExpression(processedExpr, varsSnapshot);
                 
                 animType = mathOp === '+' ? 'block_sum' : mathOp === '-' ? 'block_sub' : mathOp === '*' ? 'block_mul' : 'block_div';
-                animationData = { left, op: mathOp, right, result: newVal };
+                animationData = {
+                    left,
+                    leftName: isNaN(Number(leftToken)) ? leftToken : undefined,
+                    right,
+                    rightName: isNaN(Number(rightToken)) ? rightToken : undefined,
+                    op: mathOp,
+                    result: newVal,
+                    destVar: name
+                };
             } else {
                 newVal = evaluateExpression(processedExpr, varsSnapshot);
-                animationData = { value: newVal };
+                animationData = { value: newVal, destVar: name };
             }
 
             currentVars[name].value = newVal;
@@ -447,6 +487,202 @@ export function generateSteps(code: string): StepFrame[] {
     return steps;
 }
 
+/* ════════════════════════════════
+   DIAGRAMA DE FLUJO COMPACTO PARA STEPPER
+   ════════════════════════════════ */
+
+export interface StepperDiagramNode {
+    id: number;
+    type: 'start' | 'end' | 'declare' | 'assign' | 'condition' | 'loop' | 'print' | 'input';
+    label: string;
+    lineNumber: number;
+}
+
+export interface StepperDiagramLink {
+    from: number;
+    to: number;
+    label?: string;
+}
+
+export interface StepperDiagram {
+    nodes: StepperDiagramNode[];
+    links: StepperDiagramLink[];
+}
+
+/**
+ * Genera un diagrama de flujo compacto (lista lineal de nodos) a partir del código RE.
+ * Optimizado para renderizarse de forma compacta y sin zoom en el panel central del stepper.
+ */
+export function generateStepperDiagram(code: string): StepperDiagram {
+    const lines = code.split('\n');
+    const nodes: StepperDiagramNode[] = [];
+    const links: StepperDiagramLink[] = [];
+    let nodeId = 0;
+
+    const reProgram  = /^\s*program\s+(\w+)\s*\{/;
+    const reIf       = /^\s*if\s*\((.+?)\)\s*\{/;
+    const reWhile    = /^\s*while\s*\((.+?)\)\s*\{/;
+    const reFor      = /^\s*for\s+(\w+)\s+in\s+(.+?)\s*\{/;
+    const rePrint    = /^\s*print\s*\((.+)\)\s*;/;
+    const reInput    = /^\s*(\w+)\s+(\w+)\s*=\s*input\s*\((.+?)\)\s*;/;
+    const reDecl     = /^\s*(int|double|string|bool|var)\s+(\w+)\s*=\s*(.+?)\s*;/;
+    const reAssign   = /^\s*(\w+)\s*(=|\+=|-=|\*=|\/=)\s*(.+?)\s*;/;
+    const reElse     = /^\s*\}\s*else\s*\{/;
+
+    const addNode = (type: StepperDiagramNode['type'], label: string, lineNumber: number): number => {
+        const id = nodeId++;
+        nodes.push({ id, type, label, lineNumber });
+        return id;
+    };
+
+    const addLink = (from: number, to: number, label?: string) => {
+        if (from >= 0 && to >= 0) links.push({ from, to, label });
+    };
+
+    let prevId = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith('//') || line === '{' || line === '}') continue;
+        if (reElse.test(line)) continue;
+
+        let id = -1;
+
+        if (reProgram.test(line)) {
+            const m = line.match(reProgram)!;
+            id = addNode('start', `program ${m[1]}`, i + 1);
+        } else if (reIf.test(line)) {
+            const m = line.match(reIf)!;
+            id = addNode('condition', `if (${m[1]})`, i + 1);
+        } else if (reWhile.test(line)) {
+            const m = line.match(reWhile)!;
+            id = addNode('loop', `while (${m[1]})`, i + 1);
+        } else if (reFor.test(line)) {
+            const m = line.match(reFor)!;
+            id = addNode('loop', `for ${m[1]} in ${m[2]}`, i + 1);
+        } else if (rePrint.test(line)) {
+            const m = line.match(rePrint)!;
+            id = addNode('print', `print(${m[1]})`, i + 1);
+        } else if (reInput.test(line)) {
+            const m = line.match(reInput)!;
+            id = addNode('input', `input → ${m[2]}`, i + 1);
+        } else if (reDecl.test(line)) {
+            const m = line.match(reDecl)!;
+            id = addNode('declare', `${m[1]} ${m[2]} = ${m[3]}`, i + 1);
+        } else if (reAssign.test(line)) {
+            const m = line.match(reAssign)!;
+            id = addNode('assign', `${m[1]} ${m[2]} ${m[3]}`, i + 1);
+        }
+
+        if (id >= 0) {
+            if (prevId >= 0) addLink(prevId, id);
+            prevId = id;
+        }
+    }
+
+    // Nodo de fin
+    const endId = addNode('end', 'FIN', lines.length);
+    if (prevId >= 0) addLink(prevId, endId);
+
+    return { nodes, links };
+}
+
+/* ════════════════════════════════
+   RENDER DE DIAGRAMA EN COLUMNA CENTRAL
+   ════════════════════════════════ */
+
+let stepperDiagram: StepperDiagram | null = null;
+
+function renderStepperDiagram(diagram: StepperDiagram, activeLineNumber: number) {
+    const canvas = document.getElementById('stepperAnimCanvas')!;
+    canvas.innerHTML = '';
+
+    const diagramEl = document.createElement('div');
+    diagramEl.className = 'sdiagram-container';
+
+    for (let i = 0; i < diagram.nodes.length; i++) {
+        const node = diagram.nodes[i];
+        const isActive = node.lineNumber === activeLineNumber;
+
+        // Línea de conector antes del nodo
+        if (i > 0) {
+            const connector = document.createElement('div');
+            connector.className = 'sdiagram-connector';
+            diagramEl.appendChild(connector);
+        }
+
+        const nodeEl = document.createElement('div');
+        nodeEl.className = `sdiagram-node sdiagram-node-${node.type}`;
+        nodeEl.setAttribute('data-node-id', String(node.id));
+        nodeEl.setAttribute('data-line', String(node.lineNumber));
+        if (isActive) nodeEl.classList.add('sdiagram-node-active');
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'sdiagram-node-label';
+        labelEl.textContent = node.label;
+        nodeEl.appendChild(labelEl);
+
+        diagramEl.appendChild(nodeEl);
+    }
+
+    canvas.appendChild(diagramEl);
+
+    // Scroll al nodo activo
+    const activeEl = canvas.querySelector('.sdiagram-node-active');
+    if (activeEl) {
+        activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+}
+
+/* ════════════════════════════════
+   ANIMACIÓN FÍSICA flyToMemory
+   ════════════════════════════════ */
+
+/**
+ * Crea un bloque flotante que vuela desde el nodo activo hasta la celda
+ * de la variable destino en la columna derecha de variables.
+ */
+function animateDataFlow(destVar: string, value: any) {
+    // Buscar el nodo activo en el diagrama
+    const activeNode = document.querySelector('.sdiagram-node-active') as HTMLElement | null;
+    // Buscar la fila de la variable destino
+    const varRow = document.querySelector(`[data-varname="${destVar}"]`) as HTMLElement | null;
+
+    if (!activeNode || !varRow) return;
+
+    const srcRect = activeNode.getBoundingClientRect();
+    const dstRect = varRow.getBoundingClientRect();
+
+    // Crear bloque flotante
+    const block = document.createElement('div');
+    block.className = 'floating-block';
+    block.textContent = String(value);
+
+    // Posición inicial: centro del nodo activo
+    const startX = srcRect.left + srcRect.width / 2 - 20;
+    const startY = srcRect.top + srcRect.height / 2 - 14;
+    const endX = dstRect.left + 4;
+    const endY = dstRect.top + dstRect.height / 2 - 14;
+
+    block.style.setProperty('--startX', `${startX}px`);
+    block.style.setProperty('--startY', `${startY}px`);
+    block.style.setProperty('--endX', `${endX}px`);
+    block.style.setProperty('--endY', `${endY}px`);
+    block.style.left = `${startX}px`;
+    block.style.top = `${startY}px`;
+
+    document.body.appendChild(block);
+
+    // Al terminar la animación: remover bloque y hacer flash en la celda
+    block.addEventListener('animationend', () => {
+        block.remove();
+        varRow.classList.remove('changed-var');
+        // Forzar reflow para reiniciar la animación
+        void varRow.offsetWidth;
+        varRow.classList.add('changed-var');
+    });
+}
+
 // Stepper playback state
 let currentSteps: StepFrame[] = [];
 let currentStepIndex = 0;
@@ -458,6 +694,10 @@ export function openStepper(steps: StepFrame[], editor: any) {
     currentSteps = steps;
     currentStepIndex = 0;
     backEditor = editor;
+
+    // Generar diagrama de flujo compacto para la columna central
+    const code = editor.getValue();
+    stepperDiagram = generateStepperDiagram(code);
 
     const overlay = document.getElementById('stepperOverlay')!;
     overlay.style.display = 'flex';
@@ -596,8 +836,19 @@ function goToStep(index: number) {
     const descBox = document.getElementById('stepperDescription')!;
     descBox.textContent = `[Paso ${index + 1} de ${currentSteps.length}] ${step.description}`;
 
-    // 5. Render Animations in Canvas
-    renderAnimation(step);
+    // 5. Render Diagram or Animation in Canvas
+    if (stepperDiagram) {
+        renderStepperDiagram(stepperDiagram, step.lineNumber);
+        // Animar bloque físico hacia memoria si hay variable destino
+        if (step.animationData?.destVar && step.animationData?.result !== undefined) {
+            // Pequeño delay para que el DOM se actualice primero
+            setTimeout(() => animateDataFlow(step.animationData!.destVar!, step.animationData!.result), 150);
+        } else if (step.animationData?.destVar && step.animationData?.value !== undefined) {
+            setTimeout(() => animateDataFlow(step.animationData!.destVar!, step.animationData!.value), 150);
+        }
+    } else {
+        renderAnimation(step);
+    }
 
     // 6. Highlight inside main Ace Editor (in background)
     if (backEditor) {
@@ -658,10 +909,10 @@ function renderAnimation(step: StepFrame) {
     const data = step.animationData;
 
     if (animType.startsWith('block_')) {
-        const op = data.op;
-        const leftVal = data.left;
-        const rightVal = data.right;
-        const resultVal = data.result;
+        const op = data?.op ?? '';
+        const leftVal = data?.left;
+        const rightVal = data?.right;
+        const resultVal = data?.result;
 
         const container = document.createElement('div');
         container.className = 'anim-equation';

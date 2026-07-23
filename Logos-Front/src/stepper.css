@@ -112,10 +112,12 @@
 .stepper-anim-canvas {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 20px;
     position: relative;
+    overflow-y: auto;
 }
 
 .stepper-description {
@@ -505,4 +507,173 @@
 @keyframes bubbleRise {
     from { transform: translateY(30px) scale(0.8); opacity: 0; }
     to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ════════════════════════════════
+   DIAGRAMA COMPACTO DEL STEPPER
+   ════════════════════════════════ */
+
+.sdiagram-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+    padding: 10px 0;
+}
+
+.sdiagram-connector {
+    width: 2px;
+    height: 22px;
+    background: linear-gradient(to bottom, #2a2d3e, #4a4d6a);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.sdiagram-connector::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid #4a4d6a;
+}
+
+.sdiagram-node {
+    width: 100%;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    border: 1px solid;
+    cursor: default;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    word-break: break-word;
+    position: relative;
+}
+
+/* Tipos de nodo */
+.sdiagram-node-start,
+.sdiagram-node-end {
+    border-radius: 20px;
+    background: rgba(184, 195, 255, 0.08);
+    border-color: rgba(184, 195, 255, 0.4);
+    color: #b8c3ff;
+}
+
+.sdiagram-node-declare,
+.sdiagram-node-assign {
+    border-radius: 6px;
+    background: rgba(168, 230, 207, 0.06);
+    border-color: rgba(168, 230, 207, 0.3);
+    color: #a8e6cf;
+}
+
+.sdiagram-node-condition {
+    border-radius: 0;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    background: rgba(255, 224, 130, 0.08);
+    border-color: rgba(255, 224, 130, 0.4);
+    color: #ffe082;
+    padding: 16px 14px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sdiagram-node-loop {
+    border-radius: 0;
+    clip-path: polygon(20px 0%, calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 20px 100%, 0% 50%);
+    background: rgba(195, 177, 225, 0.08);
+    border-color: rgba(195, 177, 225, 0.4);
+    color: #c3b1e1;
+    padding: 10px 30px;
+}
+
+.sdiagram-node-print {
+    clip-path: polygon(0% 15%, 100% 0%, 100% 85%, 0% 100%);
+    background: rgba(255, 200, 100, 0.06);
+    border-color: rgba(255, 200, 100, 0.3);
+    color: #ffc864;
+    padding: 12px 14px;
+}
+
+.sdiagram-node-input {
+    clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+    background: rgba(100, 200, 255, 0.06);
+    border-color: rgba(100, 200, 255, 0.3);
+    color: #64c8ff;
+    padding: 10px 14px;
+}
+
+/* Nodo Activo — Brillo y borde prominente */
+.sdiagram-node.sdiagram-node-active {
+    box-shadow: 0 0 18px rgba(184, 195, 255, 0.5), 0 0 6px rgba(184, 195, 255, 0.3) inset;
+    border-color: #b8c3ff !important;
+    color: #ffffff !important;
+    animation: nodeGlow 0.4s ease-out;
+    z-index: 2;
+}
+
+/* Error shake */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+.sdiagram-node-error {
+    animation: shake 0.4s ease-in-out;
+    border-color: #ff6b6b !important;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.4) !important;
+}
+
+@keyframes nodeGlow {
+    from { box-shadow: 0 0 35px rgba(184, 195, 255, 0.8); }
+    to   { box-shadow: 0 0 18px rgba(184, 195, 255, 0.5); }
+}
+
+.sdiagram-node-label {
+    font-size: 10px;
+    line-height: 1.4;
+    pointer-events: none;
+}
+
+/* ════════════════════════════════
+   FLOATING-BLOCK (flyToMemory)
+   ════════════════════════════════ */
+
+.floating-block {
+    position: fixed;
+    z-index: 10000;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: #b8c3ff;
+    color: #13141f;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    animation: flyToMemory 0.8s cubic-bezier(0.25, 1, 0.50, 1) forwards;
+    white-space: nowrap;
+}
+
+@keyframes flyToMemory {
+    from {
+        left: var(--startX);
+        top: var(--startY);
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        left: var(--endX);
+        top: var(--endY);
+        transform: scale(0.7);
+        opacity: 0.3;
+    }
 }

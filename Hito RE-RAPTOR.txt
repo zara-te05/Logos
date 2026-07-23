@@ -1,0 +1,380 @@
+HITO RE-RAPTOR — LOGOS IDE
+Especificación técnica para la fusión didáctica interactiva de Raptor y PSeInt en el lenguaje RE
+Plataforma: Logos IDE (Tauri + TypeScript + Ace Editor)
+Diseño: Escritorio (Desktop Only)
+
+================================================================================
+1. PROPÓSITO DEL PROYECTO
+================================================================================
+Este hito describe el diseño de un nuevo apartado interactivo en Logos IDE que unifica la lógica de diagramas de flujo (inspirado en Raptor) y la programación debutante estructurada (inspirado en PSeInt), utilizando el lenguaje de programación RE como el motor de sintaxis real dentro de las figuras geométricas. El objetivo es proporcionar una herramienta interactiva de construcción lógica en bloques de código RE tipo "Lego".
+
+================================================================================
+2. DISEÑO GENERAL DE LA INTERFAZ (EL MAPA LIBRE)
+================================================================================
+El lienzo de construcción se compone de un plano libre donde el estudiante gestionará de forma independiente dos regiones físicas únicas con propósitos y reglas distintas:
+
+2.1 Región de Memoria (Variables)
+----------------------------------
+- Limitación: Solo se puede crear una única Región de Memoria por programa.
+- Regla: Únicamente puede recibir cajitas de tipo "Declaración de Variable" (ej: `int a = 5;`, `string nombre;`).
+- Estructura Visual: Se dibuja como una "Isla de Memoria" con bordes discontinuos en azul claro (`#b8c3ff`), fondo sutil translúcido y una cabecera con el texto "ZONA DE MEMORIA".
+- Función: Actúa como el inventario de la memoria RAM del sistema. Toda variable que se use en el código debe existir declarada en esta región.
+
+2.2 Región de Código (Ejecución)
+---------------------------------
+- Limitación: Solo se puede crear una única Región de Código por programa.
+- Regla: Recibe las cajitas de secuencia lógica. No permite declarar variables nuevas (es decir, no se puede escribir `int x = 5;` aquí; la declaración debe hacerse en la Región de Memoria).
+- Estructura Visual: Se dibuja como una "Línea de Procesador" con fondo oscuro (`#11131c`), una guía central vertical y una cabecera con el texto "ZONA DE EJECUCIÓN".
+- Bloque Inicial: Siempre inicia por ley con la cajita de `Main/Programa` al principio del flujo.
+- Tipos de Cajitas Permitidas:
+  1. Operaciones (Asignación): Cajitas rectangulares para modificar variables declaradas (ej: `suma = a + b;`).
+  2. Condicionales (Bifurcaciones If/Else): Explicadas en la sección 3.
+  3. Mostrar (Print): Cajitas trapezoidales para salida de datos (ej: `print(suma);`).
+
+*Nota sobre simplificación:* Se omiten por completo los bucles (`while`, `for`, `do-while`) para reducir la sobrecarga cognitiva del alumno y enfocar el aprendizaje en las bases de secuencia y decisión.
+
+================================================================================
+3. CONDICIONALES ANIDADOS ESPECTACULARES (OPCIÓN A: ELASTIC NESTING)
+================================================================================
+Para evitar cruces de líneas ("código espagueti") y representar de forma clara el concepto de ámbito (scope), los condicionales se estructuran mediante cajas elásticas anidadas:
+
+- Estructura del bloque If:
+  - Es un contenedor con estilo de cristal translúcido (glassmorphism).
+  - En la cabecera lleva el rombo con la condición (ej: `if (suma > 0)`).
+  - Debajo se divide en dos columnas verticales de colocación:
+    - Columna Izquierda: Bloques a ejecutar en el camino del `SÍ` (Verdadero).
+    - Columna Derecha: Bloques a ejecutar en el camino del `NO` (Falso/Else).
+
+Estructura del DOM de Anidación:
+```html
+<div class="logic-block logic-if">
+    <div class="logic-if-header">
+        <div class="diamond-rot"></div>
+        <div class="diamond-label">if (condicion)</div>
+    </div>
+    <div class="logic-if-branches">
+        <div class="logic-branch branch-yes" data-placeholder="Arrastra aquí el bloque para SÍ">
+            <!-- Nodos hijos de ejecución del bloque then se insertan aquí -->
+        </div>
+        <div class="logic-branch branch-no" data-placeholder="Arrastra aquí el bloque para NO (Else)">
+            <!-- Nodos hijos de ejecución del bloque else se insertan aquí -->
+        </div>
+    </div>
+</div>
+```
+
+Estructura de CSS Grid/Flexbox para Nesting:
+```css
+.logic-block.logic-if {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    margin: 10px 0;
+}
+
+.logic-if-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.logic-if-branches {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.logic-branch {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 80px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.logic-branch.branch-yes {
+    border-color: rgba(168, 230, 207, 0.3);
+}
+.logic-branch.branch-yes::before {
+    content: "SÍ";
+    font-size: 10px;
+    color: #a8e6cf;
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-family: monospace;
+}
+
+.logic-branch.branch-no {
+    border-color: rgba(255, 107, 107, 0.3);
+}
+.logic-branch.branch-no::before {
+    content: "NO";
+    font-size: 10px;
+    color: #ff6b6b;
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-family: monospace;
+}
+
+/* Nesting recursivo automático */
+.logic-branch .logic-block.logic-if {
+    width: calc(100% - 10px);
+    margin: 5px auto;
+}
+```
+
+================================================================================
+4. VISUALIZACIÓN ESPECÍFICA DE CAJITAS + MINI-EDITOR INTERNO
+================================================================================
+Cada tipo de bloque debe renderizarse con su forma y contenido visual propio:
+
+A. DECLARACIÓN (rect redondeado, color azul/violeta):
+   - Parsear: tipo (int/double/string/bool) + nombre + valor inicial
+   - Mostrar: [📦 int] [suma] [= 0] con badges de color por tipo
+   - Forma: rectángulo redondeado, borde #b8c3ff
+
+B. ASIGNACIÓN (rect verde):
+   - Parsear: destino = expresión (ej: x = z + c)
+   - Mostrar: [x] [=] [z + c] con tokens coloreados
+   - Forma: rectángulo con borde #a8e6cf
+
+C. CONDICIONAL (rombo amarillo, visible y real):
+   - Parsear: la condición (ej: x > 0, nombre == "RE")
+   - Mostrar: un rombo SVG/CSS con la condición en el centro
+   - Debajo: dos ramas etiquetadas SÍ (verde) y NO (rojo)
+
+D. PRINT (trapecio naranja/amarillo):
+   - Parsear: el argumento de print(...)
+   - Mostrar: el argumento centrado en el trapecio
+
+E. PROGRAM_MAIN (ovalo/pastilla azul):
+   - Solo muestra "▶ Principal" — no editable
+
+Mini-editor interno (modal centrado sobre el lienzo):
+1. Double-click sobre cualquier cajita abre el editor flotante en la MISMA PESTAÑA.
+2. Modal con backdrop oscuro translúcido, glass-morphism, centrado en el canvas.
+3. Ace Editor embebido con modo RE, tema one_dark, 3-6 líneas.
+4. Botones "💾 Guardar" y "✕ Cancelar".
+5. Al guardar: se re-parsea el código, se actualiza la cajita visualmente y se re-valida.
+
+
+================================================================================
+5. REGLAS DE VALIDACIÓN DINÁMICA (OPCIÓN A)
+================================================================================
+Al guardar el código RE de una cajita en la Región de Código, el validador semántico analiza la instrucción en tiempo real:
+
+Algoritmo de Extracción de Variables (JS/TS):
+```typescript
+function getVariablesFromExpression(expr: string): string[] {
+    // Excluye palabras reservadas de RE y tipos de datos comunes
+    const keywords = ['int', 'double', 'string', 'bool', 'var', 'if', 'else', 'print', 'input', 'true', 'false'];
+    
+    // Extrae todos los identificadores alfanuméricos
+    const matches = expr.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g) || [];
+    
+    // Filtra palabras reservadas y duplicados
+    return Array.from(new Set(matches.filter(m => !keywords.includes(m))));
+}
+```
+
+Lógica de Validación Semántica:
+1. Analizar la expresión de la cajita (ej: `suma = a + b;`).
+2. Obtener la variable de destino a la izquierda del operador `=` (ej: `suma`).
+3. Obtener las variables de origen a la derecha del operador `=` (ej: `a`, `b`).
+4. Buscar en la Región de Memoria activa del lienzo la lista de variables declaradas (ej: nodos en la Región de Memoria de tipo `Declaración`).
+5. Validar que la variable de destino esté declarada en la Región de Memoria.
+6. Validar que todas las variables de origen estén declaradas en la Región de Memoria.
+7. Si alguna variable no se encuentra declarada:
+   - Marcar el nodo con la clase `.sdiagram-node-error`.
+   - Lanzar un efecto de vibración visual en CSS (`animation: shake 0.4s;`).
+   - Mostrar un globo informativo de error: *"La variable 'x' no ha sido declarada en la Región de Memoria."*
+
+Vibración de Error en CSS:
+```css
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+.sdiagram-node-error {
+    animation: shake 0.4s ease-in-out;
+    border-color: #ff6b6b !important;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.4) !important;
+}
+```
+
+================================================================================
+6. GUÍA DE IMPLEMENTACIÓN PARA DESARROLLADORES / IAS
+================================================================================
+1. Crear un espacio independiente (un nuevo módulo e interfaz `logic-builder.ts` y `logic-builder.css`) en lugar de sobreescribir el `flow` actual para evitar romper la funcionalidad existente.
+2. Basarse en contenedores HTML con estilos anidados elásticos en CSS para el renderizado del diagrama en la Región de Código, evitando posicionamiento absoluto de nodos para facilitar la anidación dinámica del `If/Else`.
+3. Implementar el analizador de expresiones simple en TypeScript que compare variables del código contra el listado de nodos de la Región de Memoria activa.
+4. Integrar el mini-editor en un panel deslizable lateral (Drawer) que cargue una instancia del editor Ace o un área de texto con validación de sintaxis.
+
+================================================================================
+7. BITÁCORA DE IMPLEMENTACIÓN — 2026-07-16
+================================================================================
+Implementado por: Antigravity IA
+Build: exitoso (vite v6.4.3, 9 módulos, 0 errores TypeScript)
+
+──────────────────────────────────────────────────────────────────────────────
+✅ COMPLETADO (Hito RE-RAPTOR — logic-builder.ts + logic-builder.css)
+──────────────────────────────────────────────────────────────────────────────
+[x] Sección 2.1 — Región de Memoria implementada:
+      - Zona con borde discontinuo azul (#b8c3ff), fondo translúcido
+      - Cabecera "ZONA DE MEMORIA" con dot de color
+      - Solo acepta cajitas de tipo "declare"
+      - Validación: rechaza otros tipos con toast de error
+
+[x] Sección 2.2 — Región de Código implementada:
+      - Zona oscura (#11131c) con guía central vertical via ::before
+      - Cabecera "ZONA DE EJECUCIÓN"
+      - Bloque inicial program_main inyectado automáticamente
+      - Acepta: assign, print, condition (NO acepta declare ni program_main extra)
+
+[x] Sección 3 — Condicionales anidados Elastic Nesting:
+      - Estructura DOM exacta del spec (lb-if-header + lb-if-branches)
+      - Dos columnas: branch-yes (verde) y branch-no (rojo)
+      - Labels "SÍ" / "NO" via ::before
+      - Glassmorphism (backdrop-filter, rgba background, border sutil)
+      - Nesting recursivo via CSS: .lb-branch .lb-node-condition
+
+[x] Sección 4 — Mini-editor Ace en Drawer lateral:
+      - Panel deslizante desde la derecha (transition right CSS)
+      - Título dinámico según tipo de cajita
+      - Ace Editor embebido con modo RE y tema one_dark
+      - Sección de ayuda con ejemplos por tipo de cajita
+      - Botones "Guardar" y "Cancelar" funcionales
+      - Doble clic en cajita abre el drawer
+
+[x] Sección 5 — Validación dinámica:
+      - getVariablesFromExpression() filtra keywords RE
+      - getDeclaredVarNames() lee nodos de la Región de Memoria
+      - validateNode() compara variables usadas vs. declaradas
+      - Clase lb-node-error + animación lbShake en CSS
+      - Globo de error bajo la cajita con mensaje descriptivo
+
+[x] Sección 6 — Módulo independiente:
+      - logic-builder.ts y logic-builder.css como archivos separados
+      - No sobrescribe el flow existente (ni index.ts general, ni stepper.ts)
+      - Carga dinámica via import() desde index.ts solo cuando se activa
+      - Botón "RAPTOR" en Activity Bar (widgets icon)
+      - Vista #viewLogic separada en el HTML
+
+[x] Extra — Paleta de bloques drag & drop:
+      - 4 bloques arrastrables: Declarar, Operación, Mostrar, Condicional
+      - DragEvent con dataTransfer para drop en zonas
+      - Feedback visual .lb-zone-dragover en las zonas
+      - Clic sobre la paleta añade bloques instantáneamente (fallback para evitar problemas en WebView)
+      - Corrección de dragDropEnabled en tauri.conf.json (desactivado para no interceptar eventos nativos de arrastre)
+      - Fix clásico de dragleave ignorando elementos hijos mediante relatedTarget
+
+[x] Extra — Generación de código RE:
+      - generateRECode() produce código RE válido a partir del lienzo
+      - Preview en tiempo real en panel inferior (pre#lb-code-preview)
+      - Botón "Enviar al Editor": despacha CustomEvent 'lb-send-to-editor'
+      - index.ts escucha el evento y llama setCode() + setView('code')
+
+[x] Extra — Rendering visual específico por tipo de cajita:
+      - DECLARACIÓN: parseDeclare() extrae tipo+nombre+valor;
+        se muestra badge coloreado por tipo (int=azul, string=violeta, bool=verde)
+        con nombre en bold y valor a la derecha — todo en rectángulo #b8c3ff
+      - ASIGNACIóN: parseAssign() extrae destino y expresión;
+        se muestra "destino ← expresión" con tokens coloreados en rectángulo verde
+      - PRINT: parsePrint() extrae el argumento de print(...);
+        se muestra el argumento en trapecio naranja con ícono de impresora
+      - CONDICIONAL: rombo real (clip-path polygon) de 68px de alto con la condición
+        centrada en texto; debajo las ramas SÍ (verde) y NO (rojo)
+      - PROGRAM MAIN: pastilla ovalada azul con "&#9654; Principal"
+
+[x] Extra — Mini-editor modal en la misma pestaña:
+      - #lb-modal-backdrop: overlay oscuro blur(4px) que cubre solo el lienzo
+      - #lb-drawer convertido a modal centrado (translate -50%/-50%, scale 0.9→1)
+      - Double-click en cualquier cajita abre el modal en la misma pestaña
+      - Clic en el backdrop cierra el editor (UX intuitiva)
+      - El placeholder de las zonas se oculta cuando hay cajitas
+        (re-visible automáticamente si se borran todos)
+
+──────────────────────────────────────────────────────────────────────────────
+✅ COMPLETADO (RAPTOR_PSEINT_HITO — mejoras al stepper existente)
+──────────────────────────────────────────────────────────────────────────────
+[x] Sección 3 — StepFrame expandido:
+      - leftName, rightName, destVar, nodeId añadidos a animationData
+      - Propagado en declare y assign (aritmética y simple)
+
+[x] Sección 4.1 — generateStepperDiagram() en stepper.ts:
+      - Genera lista de nodos StepperDiagramNode con tipos y lineNumber
+      - Se llama automáticamente al abrir el stepper (openStepper)
+
+[x] Sección 4.1 — renderStepperDiagram() en stepper.ts:
+      - Renderiza el diagrama completo en #stepperAnimCanvas (columna central)
+      - Ilumina el nodo activo con clase .sdiagram-node-active + glow
+      - Scroll automático al nodo activo (scrollIntoView)
+      - Reemplaza la animación genérica (renderAnimation) cuando hay diagrama
+
+[x] Sección 4.1 — animateDataFlow() en stepper.ts:
+      - getBoundingClientRect() en nodo activo y fila de variable destino
+      - Crea .floating-block con --startX/Y y --endX/Y custom properties
+      - Animación flyToMemory 0.8s hacia la celda de memoria
+      - Al terminar: remueve bloque y dispara varFlash en la fila destino
+
+[x] Sección 4.2 — Nuevos estilos en stepper.css:
+      - .sdiagram-container, .sdiagram-node (todos los tipos con formas CSS)
+      - .sdiagram-node-active con glow animado (nodeGlow keyframe)
+      - .sdiagram-connector con flecha ::after
+      - .floating-block con animación flyToMemory
+      - .sdiagram-node-error con shake y borde rojo
+      - stepper-anim-canvas ahora tiene overflow-y: auto para scroll
+
+[x] Sección 4.3 — Nada que modificar en index.html para el stepper
+      (el #stepperAnimCanvas existente es suficiente)
+
+[x] Extra — Validación estricta de tipos y sintaxis:
+      - validateNodeCode() y validateValueType() revisan gramática y compatibilidad de tipos
+      - Detecta string nombre = 0; como error ("Se esperaba 'string', pero se ingresó el número 0")
+      - Valida tipos int, double, string, bool, var y palabras reservadas
+      - saveDrawer() BLOQUEA el guardado y no cierra el modal si la instrucción contiene errores
+      - Los nodos con error muestran borde rojo parpadeante con globo explicativo del problema
+
+[x] Extra — Autocompletado en Ace Editor:
+      - Habilitado enableBasicAutocompletion + enableLiveAutocompletion + enableSnippets
+      - CustomCompleter que sugiere automáticamente nombres de variables declaradas en la Región de Memoria y palabras clave del lenguaje RE mientras se escribe
+
+[x] Extra — Remoción total de emojis:
+      - Todos los emojis han sido eliminados de logic-builder.ts, logic-builder.css e index.html
+      - Reemplazados por etiquetas de texto limpias (EDIT, X, MAIN, PRINT, Guardar, Cancelar, etc.)
+
+──────────────────────────────────────────────────────────────────────────────
+⏳ PENDIENTE / MEJORAS FUTURAS
+──────────────────────────────────────────────────────────────────────────────
+[ ] Drag & Drop ENTRE cajitas de la Región de Código para reordenar
+[ ] Persistencia del lienzo (localStorage o archivo .flw) — guardar y
+    restaurar el estado de memoryNodes + codeNodes
+[ ] "Reemplazo en caliente" del label del nodo en el diagrama del stepper
+    cuando el paso está activo (ej: "suma = a + b" → "suma = 5 + 5")
+[ ] Soporte para bloques de Input en el logic-builder (reInput)
+[ ] Panel de "Historial de acciones" / Undo-Redo en logic-builder
+[ ] Pruebas con hola.re y test_completo.re para verificar flyToMemory
+    en pantallas de distinto tamaño
+
+*** DÓNDE ME QUEDÉ (sesión 2026-07-22) ***
+  - Implementada la validación gramatical y de tipos estricta (validateValueType + validateNodeCode)
+  - Bloqueo activo de guardado en el modal si hay violaciones sintácticas/semánticas
+  - Habilitado autocompletado en vivo en Ace Editor con sugerencias dinámicas de variables
+  - Eliminados el 100% de los emojis en la UI del módulo Logic Builder
+  - Compilación y build probados exitosamente: tsc + vite build sin errores (9 módulos, 0 errores)

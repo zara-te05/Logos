@@ -26,6 +26,10 @@
                     <span class="act-ico">account_tree</span>
                     <span class="act-lbl">FLOW</span>
                 </button>
+                <button class="act-btn" id="btnLogic" title="Constructor visual Centipede">
+                    <span class="act-ico">widgets</span>
+                    <span class="act-lbl">CENTIPEDE</span>
+                </button>
                 <div class="spacer"></div>
             </div>
 
@@ -238,6 +242,105 @@
                 </div>
             </div><!-- /main -->
         </div><!-- /root -->
+
+        <!-- ═══ PANEL RAPTOR / LOGIC BUILDER ═══ -->
+        <!-- Se renderiza como view oculta sobre el main cuando se activa -->
+        <div class="view hidden" id="viewLogic" style="position:absolute;inset:0;z-index:100;">
+            <div id="lb-container">
+
+                <!-- Cabecera del módulo -->
+                <div class="lb-header">
+                    <span class="material-symbols-outlined" style="color:#b8c3ff;font-size:18px">widgets</span>
+                    <span class="lb-header-title">Constructor Visual RE</span>
+                    <span class="lb-header-subtitle">Centipede · Lego de bloques RE</span>
+                    <div class="lb-header-btns">
+                        <button class="lb-header-btn" id="lb-btn-clear" title="Limpiar lienzo">
+                            <span class="material-symbols-outlined" style="font-size:14px">delete_sweep</span>
+                            Limpiar
+                        </button>
+                        <button class="lb-header-btn primary" id="lb-btn-send-to-editor" title="Enviar código al editor">
+                            <span class="material-symbols-outlined" style="font-size:14px">send</span>
+                            Enviar al Editor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Paleta de bloques arrastrables -->
+                <div class="lb-palette-bar">
+                    <span class="lb-palette-label-text">Bloques:</span>
+                    <div id="lb-palette" style="display:flex;gap:8px;"></div>
+                </div>
+
+                <!-- Lienzo principal: 2 regiones -->
+                <div class="lb-canvas">
+
+                    <!-- REGIÓN IZQUIERDA: Memoria (Variables) -->
+                    <div class="lb-region-memory">
+                        <div class="lb-region-header">
+                            <div class="lb-region-dot"></div>
+                            ZONA DE MEMORIA
+                        </div>
+                        <div class="lb-memory-island">
+                            <div id="lb-memory-zone" class="lb-drop-zone">
+                                <div class="lb-zone-placeholder">Arrastra bloques de<br>Declaración aquí</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REGIÓN DERECHA: Código / Ejecución -->
+                    <div class="lb-region-code">
+                        <div class="lb-region-header">
+                            <div class="lb-region-dot"></div>
+                            ZONA DE EJECUCIÓN
+                        </div>
+                        <div class="lb-code-track">
+                            <div id="lb-code-zone" class="lb-drop-zone">
+                                <!-- Bloque Main se inyecta dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Panel de preview de código generado -->
+                        <div class="lb-code-panel">
+                            <div class="lb-code-panel-header">
+                                <div class="lb-code-panel-dot"></div>
+                                CÓDIGO RE GENERADO
+                            </div>
+                            <pre id="lb-code-preview"></pre>
+                        </div>
+                    </div>
+
+                </div><!-- /lb-canvas -->
+
+                <!-- Backdrop oscuro para el modal interno -->
+                <div id="lb-modal-backdrop" class="lb-modal-backdrop"></div>
+
+                <!-- Drawer lateral deslizante (ahora modal centrado) -->
+                <div id="lb-drawer" class="lb-drawer">
+                    <div class="lb-drawer-header">
+                        <span id="lb-drawer-title" class="lb-drawer-title">Configurar bloque</span>
+                        <button class="lb-drawer-close" id="lb-drawer-cancel" title="Cancelar">X</button>
+                    </div>
+                    <div class="lb-drawer-body">
+                        <div>
+                            <div class="lb-drawer-label">Código RE</div>
+                            <div id="lb-ace-editor"></div>
+                        </div>
+                        <div>
+                            <div class="lb-drawer-label">Ejemplos</div>
+                            <div id="lb-drawer-hint" class="lb-drawer-hint"></div>
+                        </div>
+                    </div>
+                    <div class="lb-drawer-footer">
+                        <button class="lb-drawer-btn save" id="lb-drawer-save">Guardar</button>
+                        <button class="lb-drawer-btn cancel" id="lb-drawer-cancel-btn">Cancelar</button>
+                    </div>
+                </div>
+
+                <!-- Toast de notificaciones del Logic Builder -->
+                <div id="lb-toast"></div>
+
+            </div><!-- /lb-container -->
+        </div><!-- /viewLogic -->
 
         <!-- MODAL GUARDAR COMO -->
         <div class="modal-overlay" id="saveAsOverlay" style="display:none">

@@ -52,13 +52,13 @@ body {
 
 /* ── ACTIVITY BAR ── */
 .activity-bar {
-    width: 48px;
+    width: 64px;
     background: var(--bg-low);
     border-right: 1px solid rgba(142, 144, 162, .1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 0 8px;
+    padding: 12px 4px 8px;
     gap: 6px;
     z-index: 50;
     flex-shrink: 0;
@@ -73,8 +73,8 @@ body {
     font-family: 'Bodoni Moda', serif;
 }
 .act-btn {
-    width: 36px;
-    height: 36px;
+    width: 56px;
+    height: 42px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -87,6 +87,7 @@ body {
     border-radius: 6px;
     transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
     position: relative;
+    padding: 2px 0;
 }
 .act-btn:hover {
     color: var(--on-bg);
@@ -97,7 +98,7 @@ body {
 .act-btn.active::before {
     content: '';
     position: absolute;
-    left: -8px;
+    left: -4px;
     top: 50%;
     transform: translateY(-50%);
     width: 3px;
@@ -117,14 +118,18 @@ body {
     }
 }
 .act-ico {
-    font-size: 20px;
+    font-size: 19px;
     font-family: 'Material Symbols Outlined', sans-serif;
     line-height: 1;
 }
 .act-lbl {
-    font-size: 8px;
-    letter-spacing: .05em;
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     line-height: 1;
+    white-space: nowrap;
+    text-align: center;
+    max-width: 100%;
 }
 .spacer {
     flex: 1;
